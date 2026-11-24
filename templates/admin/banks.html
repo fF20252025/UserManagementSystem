@@ -1,0 +1,621 @@
+```html
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت بانک‌ها</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Tahoma, Arial, sans-serif;
+            background: #f4f6f9;
+            color: #263238;
+        }
+
+        .sidebar {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 230px;
+            height: 100vh;
+            background: #172b4d;
+            padding: 25px 15px;
+            color: white;
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .nav-item {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 13px;
+            border-radius: 7px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: #29466f;
+        }
+
+        .main {
+            margin-right: 230px;
+            padding: 30px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 25px;
+        }
+
+        h3 {
+            margin-top: 0;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d7dce2;
+            border-radius: 7px;
+            margin-top: 7px;
+            font-family: inherit;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .field label {
+            font-size: 13px;
+            color: #555;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 10px 17px;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 15px;
+        }
+
+        .primary {
+            background: #1769aa;
+            color: white;
+        }
+
+        .edit {
+            background: #f0ad4e;
+            color: #222;
+            margin-left: 5px;
+        }
+
+        .delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .cancel {
+            background: #e4e7eb;
+            color: #333;
+            margin-right: 7px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+        }
+
+        th, td {
+            padding: 13px;
+            border-bottom: 1px solid #eee;
+            text-align: right;
+        }
+
+        th {
+            background: #f7f8fa;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .message {
+            display: none;
+            padding: 12px;
+            border-radius: 7px;
+            margin-bottom: 15px;
+        }
+
+        .success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 25px;
+            color: #777;
+        }
+
+        @media (max-width: 800px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+            }
+
+            .main {
+                margin-right: 0;
+                padding: 15px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<aside class="sidebar">
+    <h2>پنل مدیریت</h2>
+
+    <a href="/admin/" class="nav-item">داشبورد</a>
+    <a href="/admin/users" class="nav-item">مدیریت کاربران</a>
+    <a href="/admin/banks" class="nav-item active">مدیریت بانک‌ها</a>
+    <a href="/admin/logs" class="nav-item" id="logsNav">گزارش رویدادها</a>
+    <a href="#" class="nav-item" id="logoutButton">خروج</a>
+</aside>
+
+<main class="main">
+
+    <div class="topbar">
+        <h1>مدیریت بانک‌ها</h1>
+        <span id="currentUser"></span>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <section class="card" id="addCard" style="display:none;">
+        <h3>افزودن بانک جدید</h3>
+
+        <form id="bankForm">
+            <div class="form-grid">
+
+                <div class="field">
+                    <label for="bankName">نام بانک</label>
+                    <input id="bankName" type="text" required maxlength="200">
+                </div>
+
+                <div class="field">
+                    <label for="bankServices">خدمات بانک</label>
+                    <input id="bankServices" type="text" maxlength="500">
+                </div>
+
+                <div class="field">
+                    <label for="bankYear">سال تأسیس</label>
+                    <input id="bankYear" type="number" min="1">
+                </div>
+
+            </div>
+
+            <button type="submit" class="primary" id="saveButton">
+                افزودن بانک
+            </button>
+
+            <button type="button" class="cancel" id="cancelEdit" style="display:none;">
+                لغو ویرایش
+            </button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h3>فهرست بانک‌ها</h3>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>شناسه</th>
+                        <th>نام بانک</th>
+                        <th>خدمات</th>
+                        <th>سال تأسیس</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+
+                <tbody id="banksTable">
+                    <tr>
+                        <td colspan="5" class="empty">در حال دریافت اطلاعات...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<script>
+    const API = "";
+    const accessToken = sessionStorage.getItem("access_token");
+    const refreshToken = sessionStorage.getItem("refresh_token");
+
+    let currentRole = "";
+    let editingBankId = null;
+    let banks = [];
+
+    const messageBox = document.getElementById("message");
+    const bankForm = document.getElementById("bankForm");
+    const banksTable = document.getElementById("banksTable");
+
+    function authHeaders(extra = {}) {
+        return {
+            "Authorization": `Bearer ${accessToken}`,
+            ...extra
+        };
+    }
+
+    function showMessage(text, type = "success") {
+        messageBox.textContent = text;
+        messageBox.className = "message " + type;
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    }
+
+    function clearMessage() {
+        messageBox.textContent = "";
+        messageBox.className = "message";
+    }
+
+    function escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, function(char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;"
+            }[char];
+        });
+    }
+
+    function handleUnauthorized() {
+        sessionStorage.removeItem("access_token");
+        sessionStorage.removeItem("refresh_token");
+        window.location.href = "/admin/login";
+    }
+
+    async function checkAccess() {
+        if (!accessToken) {
+            handleUnauthorized();
+            return false;
+        }
+
+        try {
+            const response = await fetch("/users/me", {
+                headers: authHeaders()
+            });
+
+            if (response.status === 401) {
+                handleUnauthorized();
+                return false;
+            }
+
+            if (!response.ok) {
+                showMessage("امکان بررسی دسترسی کاربر وجود ندارد.", "error");
+                return false;
+            }
+
+            const user = await response.json();
+
+            currentRole = user.role;
+
+            if (!["admin", "superadmin"].includes(currentRole)) {
+                showMessage("شما اجازه ورود به بخش مدیریت بانک‌ها را ندارید.", "error");
+                return false;
+            }
+
+            document.getElementById("currentUser").textContent =
+                "کاربر: " + (user.name || user.email || "");
+
+            if (currentRole === "superadmin") {
+                document.getElementById("addCard").style.display = "block";
+            }
+
+            if (currentRole !== "superadmin") {
+                document.getElementById("logsNav").style.display = "none";
+            }
+
+            return true;
+
+        } catch (error) {
+            showMessage("خطا در ارتباط با سرور.", "error");
+            return false;
+        }
+    }
+
+    async function loadBanks() {
+        banksTable.innerHTML =
+            '<tr><td colspan="5" class="empty">در حال دریافت اطلاعات...</td></tr>';
+
+        try {
+            const response = await fetch("/banks/", {
+                headers: authHeaders()
+            });
+
+            if (response.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error("دریافت فهرست بانک‌ها ناموفق بود.");
+            }
+
+            banks = await response.json();
+            renderBanks();
+
+        } catch (error) {
+            banksTable.innerHTML =
+                '<tr><td colspan="5" class="empty">خطا در دریافت اطلاعات بانک‌ها</td></tr>';
+
+            showMessage(error.message, "error");
+        }
+    }
+
+    function renderBanks() {
+        if (!banks.length) {
+            banksTable.innerHTML =
+                '<tr><td colspan="5" class="empty">هنوز بانکی ثبت نشده است.</td></tr>';
+            return;
+        }
+
+        banksTable.innerHTML = banks.map(bank => {
+            let actions = "";
+
+            if (currentRole === "admin" || currentRole === "superadmin") {
+                actions = `
+                    <button class="edit" onclick="editBank(${Number(bank.id)})">
+                        ویرایش
+                    </button>
+
+                    <button class="delete" onclick="deleteBank(${Number(bank.id)})">
+                        حذف
+                    </button>
+                `;
+            }
+
+            return `
+                <tr>
+                    <td>${escapeHTML(bank.id)}</td>
+                    <td>${escapeHTML(bank.name)}</td>
+                    <td>${escapeHTML(bank.services || "-")}</td>
+                    <td>${escapeHTML(bank.year || "-")}</td>
+                    <td>${actions || "-"}</td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    bankForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+        clearMessage();
+
+        if (currentRole !== "superadmin" && editingBankId === null) {
+            showMessage("فقط مدیر ارشد اجازه افزودن بانک را دارد.", "error");
+            return;
+        }
+
+        const name = document.getElementById("bankName").value.trim();
+        const services = document.getElementById("bankServices").value.trim();
+        const yearValue = document.getElementById("bankYear").value.trim();
+
+        if (!name) {
+            showMessage("نام بانک را وارد کنید.", "error");
+            return;
+        }
+
+        const data = {
+            name: name,
+            services: services || null,
+            year: yearValue ? Number(yearValue) : null
+        };
+
+        const url = editingBankId === null
+            ? "/banks/"
+            : `/banks/${editingBankId}`;
+
+        const method = editingBankId === null ? "POST" : "PUT";
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: authHeaders({
+                    "Content-Type": "application/json"
+                }),
+                body: JSON.stringify(data)
+            });
+
+            if (response.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.detail || "عملیات انجام نشد.");
+            }
+
+            const wasEditing = editingBankId !== null;
+
+            resetForm();
+            await loadBanks();
+
+            showMessage(
+                wasEditing ? "اطلاعات بانک با موفقیت ویرایش شد." : "بانک با موفقیت اضافه شد."
+            );
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    function editBank(bankId) {
+        const bank = banks.find(item => Number(item.id) === Number(bankId));
+
+        if (!bank) {
+            showMessage("بانک موردنظر پیدا نشد.", "error");
+            return;
+        }
+
+        editingBankId = bank.id;
+
+        document.getElementById("bankName").value = bank.name || "";
+        document.getElementById("bankServices").value = bank.services || "";
+        document.getElementById("bankYear").value = bank.year || "";
+
+        document.getElementById("addCard").style.display = "block";
+        document.getElementById("saveButton").textContent = "ذخیره تغییرات";
+        document.getElementById("cancelEdit").style.display = "inline-block";
+
+        document.getElementById("addCard").scrollIntoView({
+            behavior: "smooth"
+        });
+
+        clearMessage();
+    }
+
+    async function deleteBank(bankId) {
+        const bank = banks.find(item => Number(item.id) === Number(bankId));
+
+        if (!bank) {
+            showMessage("بانک موردنظر پیدا نشد.", "error");
+            return;
+        }
+
+        if (!confirm(`آیا از حذف بانک «${bank.name}» مطمئن هستید؟`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/banks/${bankId}`, {
+                method: "DELETE",
+                headers: authHeaders()
+            });
+
+            if (response.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.detail || "حذف بانک انجام نشد.");
+            }
+
+            await loadBanks();
+            showMessage("بانک با موفقیت حذف شد.");
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    }
+
+    function resetForm() {
+        bankForm.reset();
+        editingBankId = null;
+
+        document.getElementById("saveButton").textContent = "افزودن بانک";
+        document.getElementById("cancelEdit").style.display = "none";
+
+        if (currentRole !== "superadmin") {
+            document.getElementById("addCard").style.display = "none";
+        }
+    }
+
+    document.getElementById("cancelEdit").addEventListener("click", function() {
+        resetForm();
+        clearMessage();
+    });
+
+    document.getElementById("logoutButton").addEventListener("click", async function(event) {
+        event.preventDefault();
+
+        try {
+            await fetch("/users/logout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    refresh_token: refreshToken
+                })
+            });
+        } catch (error) {
+            // در هر صورت اطلاعات ورود از مرورگر پاک می‌شود.
+        }
+
+        sessionStorage.removeItem("access_token");
+        sessionStorage.removeItem("refresh_token");
+
+        window.location.href = "/admin/login";
+    });
+
+    async function startPage() {
+        const allowed = await checkAccess();
+
+        if (allowed) {
+            await loadBanks();
+        }
+    }
+
+    startPage();
+</script>
+
+</body>
+</html>
+```

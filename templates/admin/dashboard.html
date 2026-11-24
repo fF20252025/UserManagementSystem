@@ -1,0 +1,2886 @@
+
+{% extends "base.html" %}
+
+{% block title %}داشبورد مدیریت{% endblock %}
+
+{% block content %}
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Tahoma, Arial, sans-serif;
+    background: #f3f6fb;
+    color: #243247;
+    direction: rtl;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 250px;
+    padding: 25px 16px;
+    background: #17263e;
+    color: white;
+    overflow-y: auto;
+    z-index: 10;
+}
+
+.sidebar-logo {
+    padding: 12px 14px 30px;
+    font-size: 25px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-item {
+    display: block;
+    padding: 13px 16px;
+    border-radius: 9px;
+    color: #dce5f2;
+    text-decoration: none;
+}
+
+.nav-item:hover {
+    background: #263b5a;
+    color: white;
+}
+
+.nav-item.active {
+    background: #2457a7;
+    color: white;
+}
+
+.main-content {
+    min-width: 0;
+    margin-right: 250px;
+    padding: 30px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 25px;
+}
+
+.topbar h1 {
+    margin: 0 0 10px;
+    font-size: 25px;
+}
+
+.topbar p {
+    margin: 0;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.stat-card,
+.content-card {
+    min-width: 0;
+    padding: 24px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 3px 12px rgb(20 40 80 / 4%);
+    margin-bottom: 22px;
+}
+
+.stat-title {
+    margin-bottom: 14px;
+    color: #718096;
+    font-size: 14px;
+}
+
+.stat-value {
+    font-size: 23px;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.content-card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 19px;
+}
+
+.user-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    line-height: 1.9;
+}
+
+.user-info-grid > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.field label,
+.filter-field label {
+    display: block;
+    font-size: 13px;
+    color: #526176;
+    margin-bottom: 7px;
+}
+
+.field input,
+.field select,
+.filter-field input,
+.filter-field select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d7dce2;
+    border-radius: 7px;
+    font-family: inherit;
+    background: white;
+}
+
+button {
+    border: none;
+    border-radius: 7px;
+    padding: 10px 17px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 15px;
+}
+
+button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.primary,
+.refresh-btn {
+    background: #1769aa;
+    color: white;
+}
+
+.transfer-btn {
+    background: #198754;
+    color: white;
+}
+
+.edit-btn {
+    background: #f0ad4e;
+    color: #222;
+    margin-left: 5px;
+}
+
+.delete-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.cancel-btn,
+.clear-filter-btn {
+    background: #e4e7eb;
+    color: #333;
+    margin-right: 7px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 650px;
+}
+
+th,
+td {
+    padding: 13px;
+    border-bottom: 1px solid #eee;
+    text-align: right;
+}
+
+th {
+    background: #f7f8fa;
+}
+
+.empty {
+    text-align: center;
+    padding: 25px;
+    color: #777;
+}
+
+.message {
+    display: none;
+    padding: 12px;
+    border-radius: 7px;
+    margin-bottom: 15px;
+    line-height: 1.8;
+}
+
+.message.success {
+    display: block;
+    background: #d4edda;
+    color: #155724;
+}
+
+.message.error {
+    display: block;
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.section-note {
+    color: #718096;
+    font-size: 13px;
+    line-height: 1.8;
+    margin: -10px 0 18px;
+}
+
+.transfer-summary {
+    margin-top: 15px;
+    padding: 12px 15px;
+    background: #f7f9fc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    line-height: 2;
+    color: #4a5568;
+}
+
+.transfer-summary strong {
+    color: #243247;
+}
+
+.transfer-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: #d4edda;
+    color: #155724;
+    font-size: 12px;
+}
+
+.transfer-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+    background: #f7f9fc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-actions button {
+    margin: 0;
+}
+
+.export-btn {
+    background: #198754;
+    color: white;
+}
+
+.filter-result-count {
+    color: #526176;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.pagination button {
+    margin: 0;
+}
+
+.page-info {
+    color: #526176;
+    font-size: 13px;
+}
+
+.pagination-btn {
+    background: #1769aa;
+    color: white;
+}
+
+.transfer-details-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.transfer-details-modal.show {
+    display: flex;
+}
+
+.transfer-details-box {
+    background: white;
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 14px;
+    padding: 25px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+}
+
+.transfer-details-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    gap: 12px;
+}
+
+.transfer-details-header h2 {
+    margin: 0;
+}
+
+.transfer-details-close {
+    background: #dc3545;
+    color: white;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.transfer-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 12px 5px;
+    border-bottom: 1px solid #eee;
+    line-height: 1.8;
+}
+
+.transfer-detail-row strong {
+    color: #526176;
+    flex-shrink: 0;
+}
+
+.transfer-detail-row span {
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.details-btn {
+    background: #1769aa;
+    color: white;
+    margin: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 1000px) {
+    .dashboard-grid,
+    .form-grid,
+    .transfer-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .main-content {
+        padding: 22px;
+    }
+}
+
+@media (max-width: 700px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        padding: 12px;
+    }
+
+    .sidebar-logo {
+        padding: 10px;
+        text-align: right;
+    }
+
+    .sidebar-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .nav-item {
+        padding: 10px 12px;
+    }
+
+    .main-content {
+        margin-right: 0;
+        padding: 16px;
+    }
+
+    .dashboard-grid,
+    .user-info-grid,
+    .form-grid,
+    .transfer-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .topbar h1 {
+        font-size: 21px;
+    }
+
+    .stat-card,
+    .content-card {
+        padding: 18px;
+    }
+
+    .transfer-details-box {
+        padding: 18px;
+    }
+
+    .transfer-detail-row {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .transfer-detail-row span {
+        text-align: right;
+    }
+}
+
+/* Transfer reports */
+.report-filter {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+    background: #f7f9fc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+.report-actions {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.report-actions button { margin: 0; }
+.report-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 18px 0 24px;
+}
+.report-stat {
+    min-width: 0;
+    padding: 18px;
+    background: #f7f9fc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+.report-stat .stat-title { margin-bottom: 9px; }
+.report-stat .stat-value { font-size: 20px; overflow-wrap: anywhere; }
+.report-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 12px 0 22px;
+}
+.report-bar-row {
+    display: grid;
+    grid-template-columns: minmax(90px, 130px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+}
+.report-bar-label {
+    overflow-wrap: anywhere;
+    color: #526176;
+}
+.report-bar-track {
+    height: 14px;
+    overflow: hidden;
+    background: #e8edf5;
+    border-radius: 20px;
+}
+.report-bar-fill {
+    height: 100%;
+    min-width: 2px;
+    background: #1769aa;
+    border-radius: 20px;
+}
+.report-bar-value {
+    white-space: nowrap;
+    color: #526176;
+    font-variant-numeric: tabular-nums;
+}
+.report-subtitle {
+    margin: 24px 0 12px;
+    font-size: 16px;
+}
+.report-error {
+    display: none;
+    margin: 12px 0;
+    padding: 12px;
+    border-radius: 8px;
+    background: #f8d7da;
+    color: #721c24;
+    line-height: 1.8;
+}
+.report-loading, .report-empty {
+    padding: 18px;
+    text-align: center;
+    color: #718096;
+}
+@media (max-width: 1000px) {
+    .report-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .report-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+    .report-filter, .report-stats { grid-template-columns: 1fr; }
+    .report-bar-row { grid-template-columns: 85px minmax(0, 1fr); }
+    .report-bar-value { grid-column: 2; }
+}
+
+</style>
+
+<div class="admin-layout">
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">Havaleh</div>
+
+        <nav class="sidebar-nav">
+            <a href="/admin/" class="nav-item active">داشبورد</a>
+            <a href="/admin/users" class="nav-item">کاربران</a>
+            <a href="/admin/banks" class="nav-item">مدیریت بانک‌ها</a>
+            <a href="/admin/logs" class="nav-item" id="logsNav">لاگ‌ها</a>
+            <a href="#transferReportsSection" class="nav-item" id="transferReportsNav">گزارش انتقال‌ها</a>
+            <a href="#" class="nav-item" id="logoutButton">خروج</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1>داشبورد مدیریت</h1>
+                <p id="welcomeText">در حال دریافت اطلاعات...</p>
+            </div>
+        </header>
+
+        <div id="messageBox" class="message"></div>
+
+        <section class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-title">وضعیت پنل</div>
+                <div class="stat-value" id="panelStatus">...</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-title">کاربر واردشده</div>
+                <div class="stat-value" id="currentUser">...</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-title">نقش</div>
+                <div class="stat-value" id="currentRole">...</div>
+            </div>
+        </section>
+
+        <section class="content-card">
+            <h2>اطلاعات حساب</h2>
+            <div id="userInfo">در حال بارگذاری...</div>
+        </section>
+
+        <!-- Transfer -->
+
+        <section class="content-card" id="transferFormCard">
+
+            <h2>انتقال وجه</h2>
+
+            <p class="section-note">
+                انتقال وجه بین حساب‌های بانکی انجام می‌شود.
+                بررسی موجودی و قوانین انتقال در سمت سرور انجام خواهد شد.
+            </p>
+
+            <form id="transferForm">
+
+                <div class="form-grid">
+
+                    <div class="field">
+                        <label for="transferSourceAccount">حساب مبدأ</label>
+                        <select id="transferSourceAccount" required>
+                            <option value="">حساب مبدأ را انتخاب کنید</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="transferDestinationAccount">حساب مقصد</label>
+                        <select id="transferDestinationAccount" required>
+                            <option value="">حساب مقصد را انتخاب کنید</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="transferAmount">مبلغ انتقال</label>
+                        <input
+                            type="number"
+                            id="transferAmount"
+                            min="0.01"
+                            step="0.01"
+                            required
+                            placeholder="مبلغ را وارد کنید"
+                        >
+                    </div>
+
+                </div>
+
+                <div
+                    id="transferSourceInfo"
+                    class="transfer-summary"
+                    style="display:none;"
+                ></div>
+
+                <button
+                    type="submit"
+                    class="transfer-btn"
+                    id="transferButton"
+                >
+                    انتقال وجه
+                </button>
+
+            </form>
+        </section>
+
+        <!-- Bank Form -->
+
+        <section class="content-card" id="bankFormCard" style="display:none;">
+
+            <h2 id="bankFormTitle">افزودن بانک جدید</h2>
+
+            <form id="bankForm">
+
+                <div class="form-grid">
+
+                    <div class="field">
+                        <label for="bankName">نام بانک</label>
+                        <input
+                            type="text"
+                            id="bankName"
+                            maxlength="200"
+                            required
+                            placeholder="نام بانک را وارد کنید"
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="bankServices">خدمات بانک</label>
+                        <input
+                            type="text"
+                            id="bankServices"
+                            maxlength="500"
+                            placeholder="خدمات بانک"
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="bankYear">سال تأسیس</label>
+                        <input
+                            type="number"
+                            id="bankYear"
+                            min="1"
+                            placeholder="سال تأسیس"
+                        >
+                    </div>
+
+                </div>
+
+                <button type="submit" class="primary" id="saveBankButton">
+                    افزودن بانک
+                </button>
+
+                <button
+                    type="button"
+                    class="cancel-btn"
+                    id="cancelEditButton"
+                    style="display:none;"
+                >
+                    لغو ویرایش
+                </button>
+
+            </form>
+        </section>
+
+        <!-- Banks -->
+
+        <section class="content-card">
+
+            <h2>فهرست بانک‌ها</h2>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>شناسه</th>
+                            <th>نام بانک</th>
+                            <th>خدمات</th>
+                            <th>سال تأسیس</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="banksTable">
+                        <tr>
+                            <td colspan="5" class="empty">
+                                در حال دریافت اطلاعات...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+        <!-- Account Form -->
+
+        <section
+            class="content-card"
+            id="accountFormCard"
+            style="display:none;"
+        >
+
+            <h2 id="accountFormTitle">افزودن حساب جدید</h2>
+
+            <p class="section-note">
+                حساب جدید برای کاربر واردشده ایجاد می‌شود.
+            </p>
+
+            <form id="accountForm">
+
+                <div class="form-grid">
+
+                    <div class="field">
+                        <label for="accountNumber">شماره حساب</label>
+                        <input
+                            type="text"
+                            id="accountNumber"
+                            maxlength="100"
+                            required
+                            placeholder="شماره حساب را وارد کنید"
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="accountBalance">موجودی اولیه</label>
+                        <input
+                            type="number"
+                            id="accountBalance"
+                            min="0"
+                            step="0.01"
+                            required
+                            value="0"
+                            placeholder="موجودی حساب"
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="accountBank">بانک</label>
+                        <select id="accountBank" required>
+                            <option value="">ابتدا بانک را انتخاب کنید</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="primary"
+                    id="saveAccountButton"
+                >
+                    افزودن حساب
+                </button>
+
+                <button
+                    type="button"
+                    class="cancel-btn"
+                    id="cancelAccountEditButton"
+                    style="display:none;"
+                >
+                    لغو ویرایش
+                </button>
+
+            </form>
+        </section>
+
+        <!-- Accounts -->
+
+        <section class="content-card">
+
+            <h2>فهرست حساب‌های بانکی</h2>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>شناسه</th>
+                            <th>شماره حساب</th>
+                            <th>شناسه کاربر</th>
+                            <th>بانک</th>
+                            <th>موجودی</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="accountsTable">
+                        <tr>
+                            <td colspan="6" class="empty">
+                                در حال دریافت اطلاعات...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+        <!-- Transfer History -->
+
+        <section class="content-card">
+
+            <h2>تاریخچه انتقال وجه</h2>
+
+            <p class="section-note">
+                جست‌وجو و فیلتر انتقال‌ها در سمت سرور انجام می‌شود.
+            </p>
+
+            <div class="transfer-filters">
+
+                <div class="filter-field">
+                    <label for="transferSearch">جست‌وجو</label>
+                    <input
+                        type="text"
+                        id="transferSearch"
+                        placeholder="شناسه انتقال یا شماره حساب..."
+                    >
+                </div>
+
+                <div class="filter-field">
+                    <label for="transferStatusFilter">وضعیت انتقال</label>
+                    <select id="transferStatusFilter">
+                        <option value="">همه وضعیت‌ها</option>
+                        <option value="SUCCESS">موفق</option>
+                        <option value="FAILED">ناموفق</option>
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label for="transferStartDate">از تاریخ</label>
+                    <input type="date" id="transferStartDate">
+                </div>
+
+                <div class="filter-field">
+                    <label for="transferEndDate">تا تاریخ</label>
+                    <input type="date" id="transferEndDate">
+                </div>
+
+                <div class="filter-actions">
+                    <button
+                        type="button"
+                        class="clear-filter-btn"
+                        id="clearTransferFilters"
+                    >
+                        پاک‌کردن فیلترها
+                    </button>
+
+                    <button
+                        type="button"
+                        class="refresh-btn"
+                        id="refreshTransfersButton"
+                    >
+                        بروزرسانی
+                    </button>
+
+                    <button
+                        type="button"
+                        class="export-btn"
+                        id="exportTransfersButton"
+                    >
+                        دانلود خروجی Excel
+                    </button>
+                </div>
+
+            </div>
+
+            <div
+                class="filter-result-count"
+                id="transferResultCount"
+            >
+                در حال دریافت اطلاعات...
+            </div>
+
+            <div class="table-wrapper">
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>شناسه</th>
+                            <th>کاربر</th>
+                            <th>حساب مبدأ</th>
+                            <th>حساب مقصد</th>
+                            <th>مبلغ</th>
+                            <th>تاریخ</th>
+                            <th>وضعیت</th>
+                            <th>جزئیات</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="transfersTable">
+                        <tr>
+                            <td colspan="8" class="empty">
+                                در حال دریافت اطلاعات...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+
+            <div class="pagination">
+
+                <button
+                    type="button"
+                    class="pagination-btn"
+                    id="previousTransferPage"
+                    disabled
+                >
+                    صفحه قبل
+                </button>
+
+                <span class="page-info" id="transferPageInfo">
+                    صفحه ۱ از ۱
+                </span>
+
+                <button
+                    type="button"
+                    class="pagination-btn"
+                    id="nextTransferPage"
+                    disabled
+                >
+                    صفحه بعد
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- Transfer Reports -->
+        <section class="content-card" id="transferReportsSection">
+            <h2>گزارش و آمار انتقال وجه</h2>
+            <p class="section-note">
+                آمار بر اساس تاریخ ثبت انتقال‌ها محاسبه می‌شود. با خالی گذاشتن تاریخ‌ها، همه انتقال‌ها نمایش داده می‌شوند.
+            </p>
+
+            <div class="report-filter">
+                <div class="filter-field">
+                    <label for="reportStartDate">از تاریخ</label>
+                    <input type="date" id="reportStartDate">
+                </div>
+                <div class="filter-field">
+                    <label for="reportEndDate">تا تاریخ</label>
+                    <input type="date" id="reportEndDate">
+                </div>
+                <div class="filter-field">
+                    <label for="reportSourceAccount">حساب مبدأ</label>
+                    <select id="reportSourceAccount">
+                        <option value="">همه حساب‌های مبدأ</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="reportDestinationAccount">حساب مقصد</label>
+                    <select id="reportDestinationAccount">
+                        <option value="">همه حساب‌های مقصد</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="reportStatus">وضعیت انتقال</label>
+                    <select id="reportStatus">
+                        <option value="ALL">همه وضعیت‌ها</option>
+                        <option value="SUCCESS">موفق</option>
+                        <option value="FAILED">ناموفق</option>
+                    </select>
+                </div>
+                <div class="report-actions">
+                    <button type="button" class="primary" id="showTransferReportButton">نمایش گزارش</button>
+                    <button type="button" class="export-btn" id="exportTransferReportButton">دانلود Excel گزارش با فیلترها</button>
+                    <button type="button" class="clear-filter-btn" id="clearTransferReportDates">پاک‌کردن همه فیلترها / نمایش همه</button>
+                </div>
+            </div>
+
+            <div id="transferReportError" class="report-error" role="alert"></div>
+            <div id="transferReportLoading" class="report-loading" style="display:none;">در حال دریافت گزارش...</div>
+
+            <div class="report-stats">
+                <div class="report-stat">
+                    <div class="stat-title">تعداد کل انتقال‌ها</div>
+                    <div class="stat-value" id="reportTotalCount">۰</div>
+                </div>
+                <div class="report-stat">
+                    <div class="stat-title">مبلغ کل انتقال‌ها</div>
+                    <div class="stat-value" id="reportTotalAmount">۰</div>
+                </div>
+                <div class="report-stat">
+                    <div class="stat-title">تعداد انتقال‌های موفق</div>
+                    <div class="stat-value" id="reportSuccessCount">۰</div>
+                </div>
+                <div class="report-stat">
+                    <div class="stat-title">مبلغ انتقال‌های موفق</div>
+                    <div class="stat-value" id="reportSuccessAmount">۰</div>
+                </div>
+                <div class="report-stat">
+                    <div class="stat-title">تعداد ناموفق / سایر وضعیت‌ها</div>
+                    <div class="stat-value" id="reportFailedCount">۰</div>
+                </div>
+                <div class="report-stat">
+                    <div class="stat-title">مبلغ ناموفق / سایر وضعیت‌ها</div>
+                    <div class="stat-value" id="reportFailedAmount">۰</div>
+                </div>
+            </div>
+
+            <h3 class="report-subtitle">نمودار روزانه - تعداد انتقال‌ها</h3>
+            <div id="dailyCountChart" class="report-chart">
+                <div class="report-empty">هنوز داده‌ای برای نمایش وجود ندارد.</div>
+            </div>
+
+            <h3 class="report-subtitle">نمودار ماهانه - مبلغ انتقال‌ها</h3>
+            <div id="monthlyAmountChart" class="report-chart">
+                <div class="report-empty">هنوز داده‌ای برای نمایش وجود ندارد.</div>
+            </div>
+
+            <h3 class="report-subtitle">آمار روزانه</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>تاریخ</th>
+                            <th>تعداد کل</th>
+                            <th>مبلغ کل</th>
+                            <th>تعداد موفق</th>
+                            <th>مبلغ موفق</th>
+                            <th>تعداد ناموفق</th>
+                            <th>مبلغ ناموفق</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dailyReportTable">
+                        <tr><td colspan="7" class="empty">در حال دریافت گزارش...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="report-subtitle">آمار ماهانه</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ماه</th>
+                            <th>تعداد کل</th>
+                            <th>مبلغ کل</th>
+                            <th>تعداد موفق</th>
+                            <th>مبلغ موفق</th>
+                            <th>تعداد ناموفق</th>
+                            <th>مبلغ ناموفق</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyReportTable">
+                        <tr><td colspan="7" class="empty">در حال دریافت گزارش...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+</div>
+
+<!-- Transfer Details Modal -->
+
+<div
+    class="transfer-details-modal"
+    id="transferDetailsModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="transferDetailsTitle"
+>
+    <div class="transfer-details-box">
+
+        <div class="transfer-details-header">
+            <h2 id="transferDetailsTitle">جزئیات انتقال وجه</h2>
+
+            <button
+                type="button"
+                class="transfer-details-close"
+                id="closeTransferDetails"
+            >
+                بستن
+            </button>
+        </div>
+
+        <div id="transferDetailsContent">
+            در حال دریافت اطلاعات...
+        </div>
+
+    </div>
+</div>
+
+<script>
+"use strict";
+
+const accessToken = sessionStorage.getItem("access_token");
+const refreshToken = sessionStorage.getItem("refresh_token");
+
+let currentRole = "";
+let currentUserId = null;
+
+let banks = [];
+let accounts = [];
+
+let editingBankId = null;
+let editingAccountId = null;
+
+let currentTransferPage = 1;
+const transferPageSize = 20;
+
+let totalTransferPages = 0;
+let totalTransfers = 0;
+
+let transferSearchTimer = null;
+let transferRequestNumber = 0;
+
+const messageBox = document.getElementById("messageBox");
+
+const bankForm = document.getElementById("bankForm");
+const banksTable = document.getElementById("banksTable");
+
+const accountForm = document.getElementById("accountForm");
+const accountsTable = document.getElementById("accountsTable");
+
+const transferForm = document.getElementById("transferForm");
+
+const transferSourceAccount = document.getElementById(
+    "transferSourceAccount"
+);
+
+const transferDestinationAccount = document.getElementById(
+    "transferDestinationAccount"
+);
+
+const transferAmount = document.getElementById("transferAmount");
+const transferButton = document.getElementById("transferButton");
+
+const transferSourceInfo = document.getElementById(
+    "transferSourceInfo"
+);
+
+const transfersTable = document.getElementById("transfersTable");
+
+const transferSearch = document.getElementById("transferSearch");
+const transferStatusFilter = document.getElementById("transferStatusFilter");
+const transferStartDate = document.getElementById("transferStartDate");
+const transferEndDate = document.getElementById("transferEndDate");
+
+function authHeaders(extra = {}) {
+    return {
+        "Authorization": "Bearer " + accessToken,
+        ...extra
+    };
+}
+
+function clearSession() {
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+}
+
+function redirectToLogin() {
+    clearSession();
+    window.location.replace("/admin/login");
+}
+
+function showMessage(text, type = "success") {
+    messageBox.textContent = text;
+    messageBox.className = "message " + type;
+}
+
+function clearMessage() {
+    messageBox.textContent = "";
+    messageBox.className = "message";
+}
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, function(char) {
+        return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[char];
+    });
+}
+
+async function apiRequest(url, options = {}) {
+
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...authHeaders(),
+            ...(options.headers || {})
+        }
+    });
+
+    if (response.status === 401) {
+        redirectToLogin();
+        throw new Error("نشست شما منقضی شده است.");
+    }
+
+    let result = {};
+
+    try {
+        result = await response.json();
+    } catch {
+        result = {};
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            result.detail ||
+            result.message ||
+            "عملیات ناموفق بود."
+        );
+    }
+
+    return result;
+}
+
+
+// =========================
+// Load Dashboard
+// =========================
+
+async function loadDashboard() {
+
+    if (!accessToken) {
+        redirectToLogin();
+        return;
+    }
+
+    try {
+
+        const user = await apiRequest("/users/me");
+
+        if (
+            user.role !== "admin" &&
+            user.role !== "superadmin"
+        ) {
+            redirectToLogin();
+            return;
+        }
+
+        currentRole = user.role;
+        currentUserId = user.id;
+
+        document.getElementById("panelStatus").textContent = "فعال";
+
+        document.getElementById("currentUser").textContent =
+            user.name || "-";
+
+        document.getElementById("currentRole").textContent =
+            user.role || "-";
+
+        document.getElementById("welcomeText").textContent =
+            "خوش آمدید، " + (user.name || "");
+
+        if (currentRole !== "superadmin") {
+            document.getElementById("logsNav").style.display = "none";
+        }
+
+        if (currentRole === "superadmin") {
+            document.getElementById("bankFormCard").style.display = "block";
+            document.getElementById("accountFormCard").style.display = "block";
+        }
+
+        renderUserInfo(user);
+
+        await loadBanks();
+        await loadAccounts();
+        await loadTransfers();
+        await loadTransferReport();
+
+    } catch (error) {
+
+        document.getElementById("userInfo").textContent =
+            error.message || "خطایی رخ داد.";
+
+        showMessage(error.message, "error");
+    }
+}
+
+
+// =========================
+// User Information
+// =========================
+
+function renderUserInfo(user) {
+
+    const userInfo = document.getElementById("userInfo");
+
+    userInfo.replaceChildren();
+
+    const infoGrid = document.createElement("div");
+    infoGrid.className = "user-info-grid";
+
+    const fields = [
+        ["شناسه", user.id],
+        ["نام", user.name],
+        ["ایمیل", user.email],
+        ["تلفن", user.phone],
+        ["نقش", user.role]
+    ];
+
+    for (const [label, value] of fields) {
+
+        const item = document.createElement("div");
+        const strong = document.createElement("strong");
+
+        strong.textContent = label + ": ";
+
+        item.appendChild(strong);
+
+        item.appendChild(
+            document.createTextNode(
+                value === null || value === undefined
+                    ? "-"
+                    : String(value)
+            )
+        );
+
+        infoGrid.appendChild(item);
+    }
+
+    userInfo.appendChild(infoGrid);
+}
+
+
+// =========================
+// Banks
+// =========================
+
+async function loadBanks() {
+
+    banksTable.innerHTML =
+        '<tr><td colspan="5" class="empty">در حال دریافت اطلاعات...</td></tr>';
+
+    try {
+
+        banks = await apiRequest("/banks/");
+
+        renderBanks();
+        fillBankSelect();
+
+    } catch (error) {
+
+        banksTable.innerHTML =
+            '<tr><td colspan="5" class="empty">خطا در دریافت بانک‌ها</td></tr>';
+
+        showMessage(error.message, "error");
+    }
+}
+
+function renderBanks() {
+
+    if (!banks.length) {
+
+        banksTable.innerHTML =
+            '<tr><td colspan="5" class="empty">هنوز بانکی ثبت نشده است.</td></tr>';
+
+        return;
+    }
+
+    banksTable.innerHTML = banks.map(bank => {
+
+        let actions = "";
+
+        if (
+            currentRole === "admin" ||
+            currentRole === "superadmin"
+        ) {
+
+            actions = `
+                <button
+                    class="edit-btn"
+                    onclick="editBank(${Number(bank.id)})"
+                >
+                    ویرایش
+                </button>
+
+                <button
+                    class="delete-btn"
+                    onclick="deleteBank(${Number(bank.id)})"
+                >
+                    حذف
+                </button>
+            `;
+        }
+
+        return `
+            <tr>
+                <td>${escapeHTML(bank.id)}</td>
+                <td>${escapeHTML(bank.name)}</td>
+                <td>${escapeHTML(bank.services || "-")}</td>
+                <td>${escapeHTML(bank.year || "-")}</td>
+                <td>${actions || "-"}</td>
+            </tr>
+        `;
+
+    }).join("");
+}
+
+function fillBankSelect() {
+
+    const select = document.getElementById("accountBank");
+    const previousValue = select.value;
+
+    select.innerHTML =
+        '<option value="">بانک را انتخاب کنید</option>';
+
+    banks.forEach(bank => {
+
+        const option = document.createElement("option");
+
+        option.value = bank.id;
+        option.textContent = bank.name;
+
+        select.appendChild(option);
+    });
+
+    if (
+        previousValue &&
+        banks.some(bank => String(bank.id) === previousValue)
+    ) {
+        select.value = previousValue;
+    }
+}
+
+bankForm.addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+    clearMessage();
+
+    if (
+        currentRole !== "superadmin" &&
+        editingBankId === null
+    ) {
+        showMessage(
+            "فقط مدیر ارشد اجازه افزودن بانک را دارد.",
+            "error"
+        );
+        return;
+    }
+
+    const name = document.getElementById("bankName").value.trim();
+    const services = document.getElementById("bankServices").value.trim();
+    const yearValue = document.getElementById("bankYear").value.trim();
+
+    if (!name) {
+        showMessage("نام بانک را وارد کنید.", "error");
+        return;
+    }
+
+    const data = {
+        name: name,
+        services: services || null,
+        year: yearValue ? Number(yearValue) : null
+    };
+
+    const isEditing = editingBankId !== null;
+    const url = isEditing ? `/banks/${editingBankId}` : "/banks/";
+    const method = isEditing ? "PUT" : "POST";
+
+    try {
+
+        await apiRequest(url, {
+            method: method,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+        resetBankForm();
+
+        await loadBanks();
+        await loadAccounts();
+
+        showMessage(
+            isEditing
+                ? "اطلاعات بانک با موفقیت ویرایش شد."
+                : "بانک با موفقیت اضافه شد."
+        );
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    }
+});
+
+function editBank(bankId) {
+
+    const bank = banks.find(
+        item => Number(item.id) === Number(bankId)
+    );
+
+    if (!bank) {
+        showMessage("بانک موردنظر پیدا نشد.", "error");
+        return;
+    }
+
+    editingBankId = bank.id;
+
+    document.getElementById("bankName").value = bank.name || "";
+    document.getElementById("bankServices").value = bank.services || "";
+    document.getElementById("bankYear").value = bank.year || "";
+
+    document.getElementById("bankFormCard").style.display = "block";
+    document.getElementById("bankFormTitle").textContent = "ویرایش بانک";
+    document.getElementById("saveBankButton").textContent = "ذخیره تغییرات";
+    document.getElementById("cancelEditButton").style.display = "inline-block";
+
+    document.getElementById("bankFormCard").scrollIntoView({
+        behavior: "smooth"
+    });
+
+    clearMessage();
+}
+
+async function deleteBank(bankId) {
+
+    const bank = banks.find(
+        item => Number(item.id) === Number(bankId)
+    );
+
+    if (!bank) {
+        showMessage("بانک موردنظر پیدا نشد.", "error");
+        return;
+    }
+
+    if (!confirm("آیا از حذف بانک «" + bank.name + "» مطمئن هستید؟")) {
+        return;
+    }
+
+    try {
+
+        await apiRequest(`/banks/${bankId}`, {
+            method: "DELETE"
+        });
+
+        await loadBanks();
+        await loadAccounts();
+
+        showMessage("بانک با موفقیت حذف شد.");
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    }
+}
+
+function resetBankForm() {
+
+    bankForm.reset();
+    editingBankId = null;
+
+    document.getElementById("bankFormTitle").textContent = "افزودن بانک جدید";
+    document.getElementById("saveBankButton").textContent = "افزودن بانک";
+    document.getElementById("cancelEditButton").style.display = "none";
+
+    if (currentRole !== "superadmin") {
+        document.getElementById("bankFormCard").style.display = "none";
+    }
+}
+
+document.getElementById("cancelEditButton").addEventListener(
+    "click",
+    function() {
+        resetBankForm();
+        clearMessage();
+    }
+);
+
+
+// =========================
+// Accounts
+// =========================
+
+async function loadAccounts() {
+
+    accountsTable.innerHTML =
+        '<tr><td colspan="6" class="empty">در حال دریافت حساب‌ها...</td></tr>';
+
+    try {
+
+        accounts = await apiRequest("/accounts/");
+
+        renderAccounts();
+        fillTransferAccounts();
+        fillReportAccountFilters();
+
+    } catch (error) {
+
+        accountsTable.innerHTML =
+            '<tr><td colspan="6" class="empty">خطا در دریافت حساب‌ها</td></tr>';
+
+        showMessage(error.message, "error");
+    }
+}
+
+function getBankName(bankId) {
+
+    const bank = banks.find(
+        item => Number(item.id) === Number(bankId)
+    );
+
+    return bank ? bank.name : "بانک نامشخص";
+}
+
+function renderAccounts() {
+
+    if (!accounts.length) {
+
+        accountsTable.innerHTML =
+            '<tr><td colspan="6" class="empty">هنوز حسابی ثبت نشده است.</td></tr>';
+
+        return;
+    }
+
+    accountsTable.innerHTML = accounts.map(account => {
+
+        let actions = "";
+
+        if (
+            currentRole === "admin" ||
+            currentRole === "superadmin"
+        ) {
+
+            actions = `
+                <button
+                    class="edit-btn"
+                    onclick="editAccount(${Number(account.id)})"
+                >
+                    ویرایش
+                </button>
+
+                <button
+                    class="delete-btn"
+                    onclick="deleteAccount(${Number(account.id)})"
+                >
+                    حذف
+                </button>
+            `;
+        }
+
+        return `
+            <tr>
+                <td>${escapeHTML(account.id)}</td>
+                <td>${escapeHTML(account.number)}</td>
+                <td>${escapeHTML(account.user_id)}</td>
+                <td>${escapeHTML(getBankName(account.bank_id))}</td>
+                <td>${escapeHTML(account.balance)}</td>
+                <td>${actions || "-"}</td>
+            </tr>
+        `;
+
+    }).join("");
+}
+
+
+// =========================
+// Transfer
+// =========================
+
+function fillTransferAccounts() {
+
+    const previousSource = transferSourceAccount.value;
+    const previousDestination = transferDestinationAccount.value;
+
+    transferSourceAccount.innerHTML =
+        '<option value="">حساب مبدأ را انتخاب کنید</option>';
+
+    transferDestinationAccount.innerHTML =
+        '<option value="">حساب مقصد را انتخاب کنید</option>';
+
+    accounts.forEach(account => {
+
+        const sourceOption = document.createElement("option");
+
+        sourceOption.value = account.id;
+
+        sourceOption.textContent =
+            `حساب ${account.number} - موجودی: ${account.balance}`;
+
+        transferSourceAccount.appendChild(sourceOption);
+
+        const destinationOption = document.createElement("option");
+
+        destinationOption.value = account.id;
+        destinationOption.textContent = `حساب ${account.number}`;
+
+        transferDestinationAccount.appendChild(destinationOption);
+    });
+
+    if (
+        previousSource &&
+        accounts.some(account => String(account.id) === previousSource)
+    ) {
+        transferSourceAccount.value = previousSource;
+    }
+
+    if (
+        previousDestination &&
+        accounts.some(account => String(account.id) === previousDestination)
+    ) {
+        transferDestinationAccount.value = previousDestination;
+    }
+
+    updateTransferSourceInfo();
+}
+
+function updateTransferSourceInfo() {
+
+    const accountId = Number(transferSourceAccount.value);
+
+    const account = accounts.find(
+        item => Number(item.id) === accountId
+    );
+
+    if (!account) {
+        transferSourceInfo.style.display = "none";
+        transferSourceInfo.textContent = "";
+        return;
+    }
+
+    transferSourceInfo.style.display = "block";
+
+    transferSourceInfo.innerHTML = `
+        <strong>حساب مبدأ:</strong>
+        ${escapeHTML(account.number)}
+        <br>
+        <strong>موجودی فعلی:</strong>
+        ${escapeHTML(account.balance)}
+        <br>
+        <strong>بانک:</strong>
+        ${escapeHTML(getBankName(account.bank_id))}
+    `;
+}
+
+transferSourceAccount.addEventListener(
+    "change",
+    updateTransferSourceInfo
+);
+
+transferForm.addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+    clearMessage();
+
+    const sourceAccountId = Number(transferSourceAccount.value);
+    const destinationAccountId = Number(transferDestinationAccount.value);
+    const amountValue = transferAmount.value.trim();
+
+    if (!sourceAccountId) {
+        showMessage("لطفاً حساب مبدأ را انتخاب کنید.", "error");
+        return;
+    }
+
+    if (!destinationAccountId) {
+        showMessage("لطفاً حساب مقصد را انتخاب کنید.", "error");
+        return;
+    }
+
+    if (sourceAccountId === destinationAccountId) {
+        showMessage("حساب مبدأ و مقصد باید متفاوت باشند.", "error");
+        return;
+    }
+
+    if (amountValue === "" || Number(amountValue) <= 0) {
+        showMessage("مبلغ انتقال باید بیشتر از صفر باشد.", "error");
+        return;
+    }
+
+    transferButton.disabled = true;
+    transferButton.textContent = "در حال انتقال...";
+
+    try {
+
+        await apiRequest("/accounts/transfer", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                source_account_id: sourceAccountId,
+                destination_account_id: destinationAccountId,
+                amount: amountValue
+            })
+        });
+
+        transferForm.reset();
+        transferSourceInfo.style.display = "none";
+
+        await loadAccounts();
+        await loadTransfers();
+
+        showMessage("انتقال وجه با موفقیت انجام شد.");
+
+    } catch (error) {
+        showMessage(error.message, "error");
+
+    } finally {
+        transferButton.disabled = false;
+        transferButton.textContent = "انتقال وجه";
+    }
+});
+
+
+// =========================
+// Create / Update Account
+// =========================
+
+accountForm.addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+    clearMessage();
+
+    const number = document.getElementById("accountNumber").value.trim();
+    const balanceValue = document.getElementById("accountBalance").value;
+    const bankId = document.getElementById("accountBank").value;
+
+    if (!number) {
+        showMessage("شماره حساب را وارد کنید.", "error");
+        return;
+    }
+
+    if (balanceValue === "" || Number(balanceValue) < 0) {
+        showMessage("موجودی حساب معتبر نیست.", "error");
+        return;
+    }
+
+    if (!bankId) {
+        showMessage("لطفاً بانک را انتخاب کنید.", "error");
+        return;
+    }
+
+    const data = {
+        number: number,
+        balance: balanceValue,
+        bank_id: Number(bankId)
+    };
+
+    const isEditing = editingAccountId !== null;
+    const url = isEditing ? `/accounts/${editingAccountId}` : "/accounts/";
+    const method = isEditing ? "PUT" : "POST";
+
+    try {
+
+        await apiRequest(url, {
+            method: method,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+        resetAccountForm();
+        await loadAccounts();
+
+        showMessage(
+            isEditing
+                ? "حساب با موفقیت ویرایش شد."
+                : "حساب با موفقیت ایجاد شد."
+        );
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    }
+});
+
+function editAccount(accountId) {
+
+    const account = accounts.find(
+        item => Number(item.id) === Number(accountId)
+    );
+
+    if (!account) {
+        showMessage("حساب موردنظر پیدا نشد.", "error");
+        return;
+    }
+
+    editingAccountId = account.id;
+
+    document.getElementById("accountNumber").value = account.number || "";
+    document.getElementById("accountBalance").value = account.balance ?? "0";
+    document.getElementById("accountBank").value = String(account.bank_id);
+
+    document.getElementById("accountFormCard").style.display = "block";
+    document.getElementById("accountFormTitle").textContent = "ویرایش حساب";
+    document.getElementById("saveAccountButton").textContent = "ذخیره تغییرات";
+
+    document.getElementById("cancelAccountEditButton").style.display =
+        "inline-block";
+
+    document.getElementById("accountFormCard").scrollIntoView({
+        behavior: "smooth"
+    });
+
+    clearMessage();
+}
+
+async function deleteAccount(accountId) {
+
+    const account = accounts.find(
+        item => Number(item.id) === Number(accountId)
+    );
+
+    if (!account) {
+        showMessage("حساب موردنظر پیدا نشد.", "error");
+        return;
+    }
+
+    if (!confirm("آیا از حذف حساب شماره «" + account.number + "» مطمئن هستید؟")) {
+        return;
+    }
+
+    try {
+
+        await apiRequest(`/accounts/${accountId}`, {
+            method: "DELETE"
+        });
+
+        await loadAccounts();
+
+        showMessage("حساب با موفقیت حذف شد.");
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    }
+}
+
+function resetAccountForm() {
+
+    accountForm.reset();
+    editingAccountId = null;
+
+    document.getElementById("accountBalance").value = "0";
+    document.getElementById("accountFormTitle").textContent = "افزودن حساب جدید";
+    document.getElementById("saveAccountButton").textContent = "افزودن حساب";
+
+    document.getElementById("cancelAccountEditButton").style.display =
+        "none";
+
+    if (currentRole !== "superadmin") {
+        document.getElementById("accountFormCard").style.display = "none";
+    }
+}
+
+document.getElementById("cancelAccountEditButton").addEventListener(
+    "click",
+    function() {
+        resetAccountForm();
+        clearMessage();
+    }
+);
+
+
+// =========================
+// Server-side Transfer History
+// =========================
+
+function getTransferFilterParams() {
+
+    const params = new URLSearchParams();
+
+    const search = transferSearch.value.trim();
+    const status = transferStatusFilter.value;
+    const startDate = transferStartDate.value;
+    const endDate = transferEndDate.value;
+
+    if (search) {
+        params.set("search", search);
+    }
+
+    if (status) {
+        params.set("status", status);
+    }
+
+    if (startDate) {
+        params.set("start_date", startDate);
+    }
+
+    if (endDate) {
+        params.set("end_date", endDate);
+    }
+
+    return params;
+}
+
+async function loadTransfers() {
+
+    const requestNumber = ++transferRequestNumber;
+
+    transfersTable.innerHTML = `
+        <tr>
+            <td colspan="8" class="empty">
+                در حال دریافت اطلاعات...
+            </td>
+        </tr>
+    `;
+
+    const params = getTransferFilterParams();
+
+    params.set("page", String(currentTransferPage));
+    params.set("page_size", String(transferPageSize));
+
+    try {
+
+        const result = await apiRequest(
+            `/transfers/?${params.toString()}`
+        );
+
+        if (requestNumber !== transferRequestNumber) {
+            return;
+        }
+
+        if (!result || !Array.isArray(result.items)) {
+            throw new Error("ساختار پاسخ تاریخچه انتقال معتبر نیست.");
+        }
+
+        totalTransfers = Number(result.total || 0);
+        totalTransferPages = Number(result.total_pages || 0);
+
+        if (
+            totalTransferPages > 0 &&
+            currentTransferPage > totalTransferPages
+        ) {
+            currentTransferPage = totalTransferPages;
+            await loadTransfers();
+            return;
+        }
+
+        if (totalTransferPages === 0) {
+            currentTransferPage = 1;
+        }
+
+        renderTransfers(result.items);
+        updateTransferPagination();
+
+    } catch (error) {
+
+        if (requestNumber !== transferRequestNumber) {
+            return;
+        }
+
+        transfersTable.innerHTML = `
+            <tr>
+                <td colspan="8" class="empty">
+                    ${escapeHTML(error.message)}
+                </td>
+            </tr>
+        `;
+
+        document.getElementById("transferResultCount").textContent =
+            "دریافت اطلاعات با خطا مواجه شد.";
+
+        updateTransferPagination();
+    }
+}
+
+
+// =========================
+// Export Transfer History to Excel
+// =========================
+
+async function exportTransfersToExcel() {
+
+    const exportButton = document.getElementById(
+        "exportTransfersButton"
+    );
+
+    if (exportButton.disabled) {
+        return;
+    }
+
+    clearMessage();
+
+    exportButton.disabled = true;
+    exportButton.textContent = "در حال آماده‌سازی فایل...";
+
+    let downloadUrl = null;
+
+    try {
+
+        // فقط فیلترها ارسال می‌شوند؛ صفحه‌بندی در خروجی اعمال نمی‌شود.
+        const params = getTransferFilterParams();
+
+        const response = await fetch(
+            `/transfers/export/excel?${params.toString()}`,
+            {
+                method: "GET",
+                headers: authHeaders()
+            }
+        );
+
+        if (response.status === 401) {
+            redirectToLogin();
+            return;
+        }
+
+        if (!response.ok) {
+
+            let errorMessage = "ساخت فایل Excel ناموفق بود.";
+
+            try {
+                const errorData = await response.json();
+
+                errorMessage =
+                    errorData.detail ||
+                    errorData.message ||
+                    errorMessage;
+
+            } catch {
+                // Keep default error message.
+            }
+
+            throw new Error(errorMessage);
+        }
+
+        const blob = await response.blob();
+
+        if (!blob.size) {
+            throw new Error("فایل خروجی خالی است.");
+        }
+
+        downloadUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+
+        link.href = downloadUrl;
+        link.download = "transfer_history.xlsx";
+        link.style.display = "none";
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        showMessage("فایل Excel با موفقیت آماده و دانلود شد.");
+
+    } catch (error) {
+
+        showMessage(
+            error.message || "خطا در دریافت فایل Excel.",
+            "error"
+        );
+
+    } finally {
+
+        // کمی تأخیر برای فرصت شروع دانلود در مرورگر
+        if (downloadUrl) {
+            setTimeout(function() {
+                URL.revokeObjectURL(downloadUrl);
+            }, 1000);
+        }
+
+        exportButton.disabled = false;
+        exportButton.textContent = "دانلود خروجی Excel";
+    }
+}
+
+document.getElementById("exportTransfersButton").addEventListener(
+    "click",
+    exportTransfersToExcel
+);
+
+
+// =========================
+// Render Transfers
+// =========================
+
+function renderTransfers(transfers) {
+
+    if (!transfers || transfers.length === 0) {
+
+        transfersTable.innerHTML = `
+            <tr>
+                <td colspan="8" class="empty">
+                    انتقالی با فیلترهای انتخاب‌شده پیدا نشد.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    transfersTable.innerHTML = transfers.map(transfer => {
+
+        const date = transfer.created_at
+            ? new Date(transfer.created_at).toLocaleString("fa-IR")
+            : "-";
+
+        const status = transfer.status === "SUCCESS"
+            ? "موفق"
+            : transfer.status === "FAILED"
+                ? "ناموفق"
+                : transfer.status;
+
+        return `
+            <tr>
+                <td>${escapeHTML(transfer.id)}</td>
+                <td>${escapeHTML(transfer.user_id)}</td>
+                <td>${escapeHTML(transfer.source_account_number)}</td>
+                <td>${escapeHTML(transfer.destination_account_number)}</td>
+                <td>${escapeHTML(transfer.amount)}</td>
+                <td>${escapeHTML(date)}</td>
+                <td>
+                    <span class="transfer-status">
+                        ${escapeHTML(status)}
+                    </span>
+                </td>
+                <td>
+                    <button
+                        type="button"
+                        class="details-btn"
+                        data-transfer-id="${Number(transfer.id)}"
+                    >
+                        مشاهده جزئیات
+                    </button>
+                </td>
+            </tr>
+        `;
+
+    }).join("");
+}
+
+
+// =========================
+// Pagination UI
+// =========================
+
+function updateTransferPagination() {
+
+    const pageInfo = document.getElementById("transferPageInfo");
+
+    const previousButton = document.getElementById(
+        "previousTransferPage"
+    );
+
+    const nextButton = document.getElementById(
+        "nextTransferPage"
+    );
+
+    const displayedPages = Math.max(totalTransferPages, 1);
+
+    pageInfo.textContent =
+        `صفحه ${currentTransferPage} از ${displayedPages}`;
+
+    document.getElementById("transferResultCount").textContent =
+        `تعداد کل نتایج: ${totalTransfers.toLocaleString("fa-IR")}`;
+
+    previousButton.disabled =
+        currentTransferPage <= 1;
+
+    nextButton.disabled =
+        totalTransferPages === 0 ||
+        currentTransferPage >= totalTransferPages;
+}
+
+document.getElementById("previousTransferPage").addEventListener(
+    "click",
+    async function() {
+
+        if (currentTransferPage > 1) {
+            currentTransferPage--;
+            await loadTransfers();
+        }
+    }
+);
+
+document.getElementById("nextTransferPage").addEventListener(
+    "click",
+    async function() {
+
+        if (currentTransferPage < totalTransferPages) {
+            currentTransferPage++;
+            await loadTransfers();
+        }
+    }
+);
+
+
+// =========================
+// Transfer Filter Events
+// =========================
+
+function resetTransferPageAndLoad() {
+
+    currentTransferPage = 1;
+    loadTransfers();
+}
+
+transferSearch.addEventListener("input", function() {
+
+    clearTimeout(transferSearchTimer);
+
+    transferSearchTimer = setTimeout(function() {
+        resetTransferPageAndLoad();
+    }, 400);
+});
+
+transferStatusFilter.addEventListener(
+    "change",
+    resetTransferPageAndLoad
+);
+
+transferStartDate.addEventListener(
+    "change",
+    resetTransferPageAndLoad
+);
+
+transferEndDate.addEventListener(
+    "change",
+    resetTransferPageAndLoad
+);
+
+document.getElementById("clearTransferFilters").addEventListener(
+    "click",
+    function() {
+
+        clearTimeout(transferSearchTimer);
+
+        transferSearch.value = "";
+        transferStatusFilter.value = "";
+        transferStartDate.value = "";
+        transferEndDate.value = "";
+
+        resetTransferPageAndLoad();
+    }
+);
+
+document.getElementById("refreshTransfersButton").addEventListener(
+    "click",
+    function() {
+        loadTransfers();
+    }
+);
+
+
+// =========================
+// Transfer Details
+// =========================
+
+async function showTransferDetails(transferId) {
+
+    const modal = document.getElementById("transferDetailsModal");
+    const content = document.getElementById("transferDetailsContent");
+
+    modal.classList.add("show");
+    content.textContent = "در حال دریافت اطلاعات...";
+
+    try {
+
+        const transfer = await apiRequest(
+            `/transfers/${transferId}`
+        );
+
+        const date = transfer.created_at
+            ? new Date(transfer.created_at).toLocaleString("fa-IR")
+            : "-";
+
+        const status = transfer.status === "SUCCESS"
+            ? "موفق"
+            : transfer.status === "FAILED"
+                ? "ناموفق"
+                : transfer.status;
+
+        const details = [
+            ["شناسه انتقال", transfer.id],
+            ["شناسه کاربر انجام‌دهنده", transfer.user_id],
+            ["شناسه حساب مبدأ", transfer.source_account_id],
+            ["شماره حساب مبدأ", transfer.source_account_number],
+            ["شناسه حساب مقصد", transfer.destination_account_id],
+            ["شماره حساب مقصد", transfer.destination_account_number],
+            ["مبلغ انتقال", transfer.amount],
+            ["تاریخ و ساعت", date],
+            ["وضعیت", status],
+            ["توضیحات", transfer.description || "بدون توضیحات"]
+        ];
+
+        content.replaceChildren();
+
+        details.forEach(([label, value]) => {
+
+            const row = document.createElement("div");
+            row.className = "transfer-detail-row";
+
+            const strong = document.createElement("strong");
+            strong.textContent = label;
+
+            const span = document.createElement("span");
+            span.textContent = value ?? "-";
+
+            row.appendChild(strong);
+            row.appendChild(span);
+
+            content.appendChild(row);
+        });
+
+    } catch (error) {
+
+        content.textContent =
+            error.message || "خطا در دریافت جزئیات انتقال.";
+    }
+}
+
+transfersTable.addEventListener("click", function(event) {
+
+    const button = event.target.closest("[data-transfer-id]");
+
+    if (!button) {
+        return;
+    }
+
+    const transferId = Number(button.dataset.transferId);
+
+    if (transferId > 0) {
+        showTransferDetails(transferId);
+    }
+});
+
+document.getElementById("closeTransferDetails").addEventListener(
+    "click",
+    function() {
+        document.getElementById("transferDetailsModal").classList.remove("show");
+    }
+);
+
+document.getElementById("transferDetailsModal").addEventListener(
+    "click",
+    function(event) {
+
+        if (event.target === this) {
+            this.classList.remove("show");
+        }
+    }
+);
+
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "Escape") {
+        document.getElementById("transferDetailsModal").classList.remove("show");
+    }
+});
+
+
+
+// =========================
+// Report account filters
+// =========================
+
+function fillReportAccountFilters() {
+    const sourceSelect = document.getElementById("reportSourceAccount");
+    const destinationSelect = document.getElementById("reportDestinationAccount");
+
+    if (!sourceSelect || !destinationSelect) {
+        return;
+    }
+
+    const previousSource = sourceSelect.value;
+    const previousDestination = destinationSelect.value;
+
+    sourceSelect.innerHTML = '<option value="">همه حساب‌های مبدأ</option>';
+    destinationSelect.innerHTML = '<option value="">همه حساب‌های مقصد</option>';
+
+    accounts.forEach(account => {
+        const label = `حساب ${account.number} (شناسه ${account.id})`;
+
+        const sourceOption = document.createElement("option");
+        sourceOption.value = String(account.id);
+        sourceOption.textContent = label;
+        sourceSelect.appendChild(sourceOption);
+
+        const destinationOption = document.createElement("option");
+        destinationOption.value = String(account.id);
+        destinationOption.textContent = label;
+        destinationSelect.appendChild(destinationOption);
+    });
+
+    if (previousSource && accounts.some(account => String(account.id) === previousSource)) {
+        sourceSelect.value = previousSource;
+    }
+
+    if (previousDestination && accounts.some(account => String(account.id) === previousDestination)) {
+        destinationSelect.value = previousDestination;
+    }
+}
+
+
+// =========================
+// Transfer Reports
+// =========================
+
+const reportNumberFormat = new Intl.NumberFormat("fa-IR", {
+    maximumFractionDigits: 2
+});
+
+function formatReportNumber(value) {
+    const number = Number(value ?? 0);
+    return reportNumberFormat.format(Number.isFinite(number) ? number : 0);
+}
+
+function setReportLoading(isLoading) {
+    document.getElementById("transferReportLoading").style.display =
+        isLoading ? "block" : "none";
+    document.getElementById("showTransferReportButton").disabled = isLoading;
+    document.getElementById("clearTransferReportDates").disabled = isLoading;
+    document.getElementById("reportStartDate").disabled = isLoading;
+    document.getElementById("reportEndDate").disabled = isLoading;
+    document.getElementById("reportSourceAccount").disabled = isLoading;
+    document.getElementById("reportDestinationAccount").disabled = isLoading;
+    document.getElementById("reportStatus").disabled = isLoading;
+}
+
+function renderReportBars(containerId, rows, labelKey, valueKey, valueType) {
+    const container = document.getElementById(containerId);
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+        container.innerHTML = '<div class="report-empty">برای این بازه داده‌ای وجود ندارد.</div>';
+        return;
+    }
+
+    const values = rows.map(row => {
+        const value = Number(row[valueKey] ?? 0);
+        return Number.isFinite(value) ? value : 0;
+    });
+    const maxValue = Math.max(...values, 0);
+
+    container.innerHTML = rows.map((row, index) => {
+        const value = values[index];
+        const width = maxValue > 0 ? (value / maxValue) * 100 : 0;
+        const label = row[labelKey] ?? "-";
+
+        return `
+            <div class="report-bar-row">
+                <div class="report-bar-label">${escapeHTML(label)}</div>
+                <div class="report-bar-track" title="${escapeHTML(formatReportNumber(value))}">
+                    <div class="report-bar-fill" style="width:${width.toFixed(2)}%"></div>
+                </div>
+                <div class="report-bar-value">${escapeHTML(formatReportNumber(value))}${valueType === "amount" ? " تومان" : " انتقال"}</div>
+            </div>
+        `;
+    }).join("");
+}
+
+function renderReportTable(tableId, rows, labelKey, labelTitle) {
+    const tbody = document.getElementById(tableId);
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">برای این بازه داده‌ای وجود ندارد.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rows.map(row => `
+        <tr>
+            <td>${escapeHTML(row[labelKey] ?? "-")}</td>
+            <td>${escapeHTML(formatReportNumber(row.total_count))}</td>
+            <td>${escapeHTML(formatReportNumber(row.total_amount))}</td>
+            <td>${escapeHTML(formatReportNumber(row.success_count))}</td>
+            <td>${escapeHTML(formatReportNumber(row.success_amount))}</td>
+            <td>${escapeHTML(formatReportNumber(row.failed_count))}</td>
+            <td>${escapeHTML(formatReportNumber(row.failed_amount))}</td>
+        </tr>
+    `).join("");
+}
+
+function renderTransferReport(report) {
+    const summary = report.summary || {};
+
+    document.getElementById("reportTotalCount").textContent =
+        formatReportNumber(summary.total_count);
+    document.getElementById("reportTotalAmount").textContent =
+        formatReportNumber(summary.total_amount) + " تومان";
+    document.getElementById("reportSuccessCount").textContent =
+        formatReportNumber(summary.success_count);
+    document.getElementById("reportSuccessAmount").textContent =
+        formatReportNumber(summary.success_amount) + " تومان";
+    document.getElementById("reportFailedCount").textContent =
+        formatReportNumber(summary.failed_count);
+    document.getElementById("reportFailedAmount").textContent =
+        formatReportNumber(summary.failed_amount) + " تومان";
+
+    const daily = Array.isArray(report.daily) ? report.daily : [];
+    const monthly = Array.isArray(report.monthly) ? report.monthly : [];
+
+    renderReportBars("dailyCountChart", daily, "date", "total_count", "count");
+    renderReportBars("monthlyAmountChart", monthly, "month", "total_amount", "amount");
+    renderReportTable("dailyReportTable", daily, "date", "تاریخ");
+    renderReportTable("monthlyReportTable", monthly, "month", "ماه");
+}
+
+async function loadTransferReport() {
+    const errorBox = document.getElementById("transferReportError");
+    errorBox.style.display = "none";
+    errorBox.textContent = "";
+    setReportLoading(true);
+
+    const params = new URLSearchParams();
+    const startDate = document.getElementById("reportStartDate").value;
+    const endDate = document.getElementById("reportEndDate").value;
+    const sourceAccountId = document.getElementById("reportSourceAccount").value;
+    const destinationAccountId = document.getElementById("reportDestinationAccount").value;
+    const status = document.getElementById("reportStatus").value;
+
+    if (startDate) params.set("start_date", startDate);
+    if (endDate) params.set("end_date", endDate);
+    if (sourceAccountId) params.set("source_account_id", sourceAccountId);
+    if (destinationAccountId) params.set("destination_account_id", destinationAccountId);
+    if (status && status !== "ALL") params.set("status", status);
+
+    if (startDate && endDate && startDate > endDate) {
+        errorBox.textContent = "تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد.";
+        errorBox.style.display = "block";
+        setReportLoading(false);
+        return;
+    }
+
+    try {
+        const query = params.toString();
+        const url = query ? `/transfers/report?${query}` : "/transfers/report";
+        const report = await apiRequest(url);
+
+        if (!report || !report.summary) {
+            throw new Error("ساختار پاسخ گزارش معتبر نیست.");
+        }
+
+        renderTransferReport(report);
+    } catch (error) {
+        errorBox.textContent = error.message || "دریافت گزارش با خطا مواجه شد.";
+        errorBox.style.display = "block";
+        document.getElementById("dailyCountChart").innerHTML =
+            '<div class="report-empty">گزارش بارگذاری نشد.</div>';
+        document.getElementById("monthlyAmountChart").innerHTML =
+            '<div class="report-empty">گزارش بارگذاری نشد.</div>';
+        document.getElementById("dailyReportTable").innerHTML =
+            '<tr><td colspan="7" class="empty">خطا در دریافت گزارش</td></tr>';
+        document.getElementById("monthlyReportTable").innerHTML =
+            '<tr><td colspan="7" class="empty">خطا در دریافت گزارش</td></tr>';
+    } finally {
+        setReportLoading(false);
+    }
+}
+
+document.getElementById("showTransferReportButton").addEventListener(
+    "click",
+    loadTransferReport
+);
+
+
+// =========================
+// Export filtered Transfer Report to Excel
+// =========================
+
+async function exportTransferReportToExcel() {
+    const exportButton = document.getElementById("exportTransferReportButton");
+
+    if (exportButton.disabled) {
+        return;
+    }
+
+    const startDate = document.getElementById("reportStartDate").value;
+    const endDate = document.getElementById("reportEndDate").value;
+    const sourceAccountId = document.getElementById("reportSourceAccount").value;
+    const destinationAccountId = document.getElementById("reportDestinationAccount").value;
+    const status = document.getElementById("reportStatus").value;
+
+    if (startDate && endDate && startDate > endDate) {
+        showMessage("تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد.", "error");
+        return;
+    }
+
+    const params = new URLSearchParams();
+
+    if (startDate) params.set("start_date", startDate);
+    if (endDate) params.set("end_date", endDate);
+    if (sourceAccountId) params.set("source_account_id", sourceAccountId);
+    if (destinationAccountId) params.set("destination_account_id", destinationAccountId);
+    if (status && status !== "ALL") params.set("status", status);
+
+    exportButton.disabled = true;
+    exportButton.textContent = "در حال آماده‌سازی فایل...";
+    clearMessage();
+
+    let downloadUrl = null;
+
+    try {
+        const query = params.toString();
+        const url = query
+            ? `/transfers/report/export/excel?${query}`
+            : "/transfers/report/export/excel";
+
+        const response = await fetch(url, {
+            method: "GET",
+            headers: authHeaders()
+        });
+
+        if (response.status === 401) {
+            redirectToLogin();
+            return;
+        }
+
+        if (!response.ok) {
+            let errorMessage = "ساخت فایل Excel گزارش ناموفق بود.";
+
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.detail || errorData.message || errorMessage;
+            } catch {
+                // Keep the default error message.
+            }
+
+            throw new Error(errorMessage);
+        }
+
+        const blob = await response.blob();
+
+        if (!blob.size) {
+            throw new Error("فایل خروجی خالی است.");
+        }
+
+        downloadUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = "transfer_report.xlsx";
+        link.style.display = "none";
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        showMessage("فایل Excel گزارش با فیلترهای انتخاب‌شده دانلود شد.");
+    } catch (error) {
+        showMessage(error.message || "خطا در دریافت فایل Excel گزارش.", "error");
+    } finally {
+        if (downloadUrl) {
+            setTimeout(function() {
+                URL.revokeObjectURL(downloadUrl);
+            }, 1000);
+        }
+
+        exportButton.disabled = false;
+        exportButton.textContent = "دانلود Excel گزارش با فیلترها";
+    }
+}
+
+document.getElementById("exportTransferReportButton").addEventListener(
+    "click",
+    exportTransferReportToExcel
+);
+
+document.getElementById("clearTransferReportDates").addEventListener(
+    "click",
+    function() {
+        document.getElementById("reportStartDate").value = "";
+        document.getElementById("reportEndDate").value = "";
+        document.getElementById("reportSourceAccount").value = "";
+        document.getElementById("reportDestinationAccount").value = "";
+        document.getElementById("reportStatus").value = "ALL";
+        loadTransferReport();
+    }
+);
+
+document.getElementById("transferReportsNav").addEventListener(
+    "click",
+    function() {
+        document.getElementById("transferReportsSection").scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
+);
+
+
+// =========================
+// Logout
+// =========================
+
+document.getElementById("logoutButton").addEventListener(
+    "click",
+    async function(event) {
+
+        event.preventDefault();
+
+        if (refreshToken) {
+
+            try {
+
+                await fetch("/users/logout", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        refresh_token: refreshToken
+                    })
+                });
+
+            } catch (error) {
+                console.error("خطا هنگام خروج:", error);
+            }
+        }
+
+        redirectToLogin();
+    }
+);
+
+
+// =========================
+// Start
+// =========================
+
+loadDashboard();
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,466 @@
+
+{% extends "base.html" %}
+
+{% block title %}گزارش فعالیت‌ها{% endblock %}
+
+{% block content %}
+<style>
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        background: #f4f6fa;
+        font-family: Tahoma, Arial, sans-serif;
+        color: #263247;
+    }
+
+    .logs-container {
+        max-width: 1500px;
+        margin: 35px auto;
+        padding: 0 20px;
+    }
+
+    .logs-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .logs-header h1 {
+        margin: 0;
+        font-size: 25px;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 17px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 13px;
+        text-decoration: none;
+    }
+
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-light { background: #e5eaf2; color: #263247; }
+
+    .filters {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: white;
+        padding: 18px;
+        border-radius: 12px;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 8px #00000008;
+    }
+
+    .filters input, .filters select {
+        min-width: 190px;
+        padding: 11px;
+        border: 1px solid #dce2eb;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 13px;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px #00000008;
+    }
+
+    table {
+        width: 100%;
+        min-width: 1250px;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+    th, td {
+        padding: 13px 11px;
+        text-align: right;
+        border-bottom: 1px solid #edf0f5;
+        white-space: nowrap;
+    }
+
+    th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: bold;
+    }
+
+    tr:hover td { background: #fafcff; }
+
+    .role {
+        display: inline-block;
+        padding: 5px 9px;
+        border-radius: 6px;
+        background: #e8efff;
+        color: #2454a6;
+        font-size: 11px;
+    }
+
+    .description {
+        white-space: normal;
+        min-width: 180px;
+        max-width: 300px;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 17px;
+        background: white;
+        border-radius: 0 0 12px 12px;
+    }
+
+    .pagination button {
+        padding: 8px 14px;
+        border: 1px solid #dce2eb;
+        border-radius: 7px;
+        background: white;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .pagination button:disabled {
+        opacity: .4;
+        cursor: not-allowed;
+    }
+
+    #status {
+        margin: 12px 0;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    @media (max-width: 600px) {
+        .logs-container { padding: 0 10px; }
+        .logs-header h1 { font-size: 20px; }
+        .filters input, .filters select { width: 100%; }
+    }
+</style>
+
+<div class="logs-container">
+    <div class="logs-header">
+        <h1>گزارش فعالیت‌ها</h1>
+
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="loadLogs()">بارگذاری مجدد</button>
+            <a class="btn btn-light" href="/admin/">بازگشت به پنل</a>
+            <button class="btn btn-danger" onclick="logout()">خروج</button>
+        </div>
+    </div>
+
+    <div class="filters">
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="جست‌وجو در نام، نقش، عملیات و توضیحات..."
+            oninput="renderLogs()"
+        >
+
+        <select id="actionFilter" onchange="renderLogs()">
+            <option value="">همه عملیات‌ها</option>
+            <option value="CREATE">ایجاد</option>
+            <option value="UPDATE">ویرایش</option>
+            <option value="DELETE">حذف</option>
+            <option value="PASSWORD_CHANGE">تغییر رمز عبور</option>
+            <option value="CHANGE_ROLE">تغییر نقش</option>
+        </select>
+    </div>
+
+    <div id="status">در حال بررسی دسترسی...</div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>شناسه</th>
+                    <th>نام کاربر انجام‌دهنده</th>
+                    <th>نقش کاربر</th>
+                    <th>شناسه کاربر</th>
+                    <th>عملیات</th>
+                    <th>بخش</th>
+                    <th>نوع موجودیت</th>
+                    <th>شناسه موجودیت</th>
+                    <th>توضیحات</th>
+                    <th>IP</th>
+                    <th>تاریخ</th>
+                </tr>
+            </thead>
+            <tbody id="logsBody">
+                <tr>
+                    <td colspan="11">در حال بارگذاری...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination">
+        <span id="pageInfo">صفحه ۱</span>
+        <div>
+            <button id="prevBtn" onclick="changePage(-1)">قبلی</button>
+            <button id="nextBtn" onclick="changePage(1)">بعدی</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allLogs = [];
+    let filteredLogs = [];
+    let currentPage = 1;
+
+    const pageSize = 20;
+
+    // دریافت توکن ذخیره‌شده هنگام ورود
+    function getAuthHeaders() {
+        const token = sessionStorage.getItem("access_token");
+
+        if (!token) {
+            window.location.href = "/admin/login";
+            return null;
+        }
+
+        return {
+            "Authorization": "Bearer " + token
+        };
+    }
+
+    async function checkAccess() {
+        try {
+            const headers = getAuthHeaders();
+
+            if (!headers) return false;
+
+            const response = await fetch("/users/me", {
+                method: "GET",
+                headers: headers
+            });
+
+            if (response.status === 401) {
+                sessionStorage.removeItem("access_token");
+                sessionStorage.removeItem("refresh_token");
+                window.location.href = "/admin/login";
+                return false;
+            }
+
+            if (!response.ok) {
+                document.getElementById("status").innerText =
+                    "خطا در بررسی دسترسی. کد پاسخ: " + response.status;
+                return false;
+            }
+
+            const user = await response.json();
+
+            if (user.role !== "superadmin") {
+                document.getElementById("status").innerText =
+                    "شما اجازه مشاهده گزارش‌ها را ندارید.";
+                return false;
+            }
+
+            return true;
+
+        } catch (error) {
+            document.getElementById("status").innerText =
+                "خطا در ارتباط با سرور: " + error.message;
+            return false;
+        }
+    }
+
+    async function loadLogs() {
+        const allowed = await checkAccess();
+
+        if (!allowed) return;
+
+        document.getElementById("status").innerText =
+            "در حال دریافت گزارش‌ها...";
+
+        try {
+            const headers = getAuthHeaders();
+
+            if (!headers) return;
+
+            const response = await fetch(
+                "/logs/?limit=500&offset=0",
+                {
+                    method: "GET",
+                    headers: headers
+                }
+            );
+
+            if (response.status === 401) {
+                sessionStorage.removeItem("access_token");
+                sessionStorage.removeItem("refresh_token");
+                window.location.href = "/admin/login";
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    "خطا در دریافت گزارش‌ها. کد پاسخ: " + response.status
+                );
+            }
+
+            allLogs = await response.json();
+
+            if (!Array.isArray(allLogs)) {
+                allLogs = [];
+            }
+
+            currentPage = 1;
+            renderLogs();
+
+            document.getElementById("status").innerText =
+                "تعداد گزارش‌های دریافت‌شده: " + allLogs.length;
+
+        } catch (error) {
+            document.getElementById("status").innerText =
+                error.message;
+        }
+    }
+
+    function renderLogs() {
+        const search = document
+            .getElementById("searchInput")
+            .value.trim()
+            .toLowerCase();
+
+        const action = document
+            .getElementById("actionFilter")
+            .value;
+
+        filteredLogs = allLogs.filter(log => {
+            const searchableText = [
+                log.id,
+                log.user_id,
+                log.user_name,
+                log.user_role,
+                log.action,
+                log.section,
+                log.entity,
+                log.entity_id,
+                log.description,
+                log.ip_address
+            ].join(" ").toLowerCase();
+
+            const matchesSearch = searchableText.includes(search);
+            const matchesAction = !action || log.action === action;
+
+            return matchesSearch && matchesAction;
+        });
+
+        const totalPages = Math.max(
+            1,
+            Math.ceil(filteredLogs.length / pageSize)
+        );
+
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        const start = (currentPage - 1) * pageSize;
+        const pageLogs = filteredLogs.slice(start, start + pageSize);
+
+        const tbody = document.getElementById("logsBody");
+
+        if (pageLogs.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11">گزارشی پیدا نشد.</td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML = pageLogs.map(log => `
+                <tr>
+                    <td>${escapeHtml(log.id)}</td>
+                    <td>${escapeHtml(log.user_name || "کاربر حذف‌شده یا نامشخص")}</td>
+                    <td>
+                        <span class="role">
+                            ${escapeHtml(log.user_role || "نامشخص")}
+                        </span>
+                    </td>
+                    <td>${escapeHtml(log.user_id)}</td>
+                    <td>${escapeHtml(log.action)}</td>
+                    <td>${escapeHtml(log.section)}</td>
+                    <td>${escapeHtml(log.entity)}</td>
+                    <td>${escapeHtml(log.entity_id)}</td>
+                    <td class="description">${escapeHtml(log.description)}</td>
+                    <td>${escapeHtml(log.ip_address)}</td>
+                    <td>${formatDate(log.created_at)}</td>
+                </tr>
+            `).join("");
+        }
+
+        document.getElementById("pageInfo").innerText =
+            `صفحه ${currentPage} از ${totalPages} | ${filteredLogs.length} گزارش`;
+
+        document.getElementById("prevBtn").disabled = currentPage <= 1;
+        document.getElementById("nextBtn").disabled =
+            currentPage >= totalPages;
+    }
+
+    function changePage(direction) {
+        currentPage += direction;
+        renderLogs();
+    }
+
+    function formatDate(value) {
+        if (!value) return "-";
+
+        const date = new Date(value);
+
+        if (isNaN(date.getTime())) return "-";
+
+        return date.toLocaleString("fa-IR");
+    }
+
+    function escapeHtml(value) {
+        if (value === null || value === undefined || value === "") {
+            return "-";
+        }
+
+        return String(value).replace(/[&<>"']/g, character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        })[character]);
+    }
+
+    async function logout() {
+        try {
+            const headers = getAuthHeaders();
+
+            if (headers) {
+                await fetch("/users/logout", {
+                    method: "POST",
+                    headers: headers
+                });
+            }
+        } finally {
+            sessionStorage.removeItem("access_token");
+            sessionStorage.removeItem("refresh_token");
+            window.location.href = "/admin/login";
+        }
+    }
+
+    loadLogs();
+</script>
+{% endblock %}

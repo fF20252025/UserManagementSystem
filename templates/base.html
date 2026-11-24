@@ -1,0 +1,164 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% block title %}
+        Havaleh Admin Panel
+        {% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='/css/admin.css') }}"
+    >
+
+    <style>
+        .calendar-setting {
+            position: fixed;
+            top: 12px;
+            left: 16px;
+            z-index: 1001;
+
+            display: inline-flex !important;
+            align-items: center;
+            gap: 8px;
+
+            padding: 9px 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+
+            background: #fff;
+            color: #333;
+
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 13px;
+
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .calendar-setting select {
+            padding: 6px 9px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #fff;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        @media (max-width: 700px) {
+            .calendar-setting {
+                top: 8px;
+                left: 8px;
+                padding: 7px 9px;
+            }
+        }
+    </style>
+
+    {% block head %}
+    {% endblock %}
+</head>
+
+<body>
+
+    {% if request.url.path not in [
+        '/admin/login',
+        '/login',
+        '/register',
+        '/forgot-password',
+        '/reset-password'
+    ] %}
+
+    <div class="calendar-setting">
+        <label for="calendarPreference">تقویم:</label>
+
+        <select id="calendarPreference">
+            <option value="jalali">شمسی</option>
+            <option value="gregorian">میلادی</option>
+        </select>
+    </div>
+
+    {% endif %}
+
+    {% block content %}
+    {% endblock %}
+
+    <script>
+        (function () {
+            "use strict";
+
+            const STORAGE_KEY = "sabtAhval_calendar";
+
+            const calendarSelect = document.getElementById(
+                "calendarPreference"
+            );
+
+            function getCalendar() {
+                const saved = localStorage.getItem(STORAGE_KEY);
+
+                return saved === "gregorian"
+                    ? "gregorian"
+                    : "jalali";
+            }
+
+            function applyCalendar(calendar) {
+                document.documentElement.dataset.calendar = calendar;
+
+                if (calendarSelect) {
+                    calendarSelect.value = calendar;
+                }
+
+                document.querySelectorAll("[data-calendar-value]").forEach(
+                    function (element) {
+                        element.textContent =
+                            calendar === "jalali"
+                                ? element.dataset.jalali || ""
+                                : element.dataset.gregorian || "";
+                    }
+                );
+            }
+
+            if (calendarSelect) {
+                calendarSelect.addEventListener("change", function () {
+                    const calendar = calendarSelect.value;
+
+                    localStorage.setItem(STORAGE_KEY, calendar);
+
+                    applyCalendar(calendar);
+                });
+            }
+
+            applyCalendar(getCalendar());
+
+            window.SabtAhvalCalendar = {
+                getCalendar: getCalendar,
+
+                setCalendar: function (calendar) {
+                    if (
+                        calendar !== "jalali" &&
+                        calendar !== "gregorian"
+                    ) {
+                        return;
+                    }
+
+                    localStorage.setItem(STORAGE_KEY, calendar);
+                    applyCalendar(calendar);
+                }
+            };
+        })();
+    </script>
+
+    {% block scripts %}
+    {% endblock %}
+
+</body>
+
+</html>

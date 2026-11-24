@@ -1,0 +1,1159 @@
+
+{% extends "base.html" %}
+
+{% block title %}مدیریت کاربران{% endblock %}
+
+{% block content %}
+
+<style>
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        font-family: Tahoma, Arial, sans-serif;
+        background: #f3f6fb;
+        color: #243247;
+        direction: rtl;
+    }
+
+    button, input, select { font-family: inherit; }
+
+    .admin-layout { min-height: 100vh; }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 250px;
+        padding: 25px 16px;
+        background: #17263e;
+        color: #fff;
+        overflow-y: auto;
+        z-index: 10;
+    }
+
+    .sidebar-logo {
+        padding: 12px 14px 30px;
+        font-size: 25px;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .nav-item {
+        display: block;
+        padding: 13px 16px;
+        border-radius: 9px;
+        color: #dce5f2;
+        text-decoration: none;
+        transition: background .2s;
+    }
+
+    .nav-item:hover { background: #263b5a; color: #fff; }
+    .nav-item.active { background: #2457a7; color: #fff; }
+
+    .main-content {
+        min-width: 0;
+        margin-right: 250px;
+        padding: 30px;
+    }
+
+    .topbar { margin-bottom: 25px; }
+
+    .topbar h1 {
+        margin: 0 0 10px;
+        font-size: 25px;
+    }
+
+    .topbar p {
+        margin: 0;
+        color: #718096;
+        line-height: 1.8;
+    }
+
+    .content-card {
+        min-width: 0;
+        padding: 24px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        box-shadow: 0 3px 12px rgb(20 40 80 / 4%);
+    }
+
+    .page-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+
+    .page-toolbar h2 { margin: 0; font-size: 19px; }
+
+    .toolbar-actions, .row-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+    }
+
+    .action-button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 8px;
+        background: #2457a7;
+        color: #fff;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background .2s;
+    }
+
+    .action-button:hover { background: #193f7a; }
+    .action-button:disabled { opacity: .6; cursor: wait; }
+
+    .success-button { background: #16845b; }
+    .success-button:hover { background: #106b49; }
+
+    .warning-button { background: #bd7b19; }
+    .warning-button:hover { background: #965e10; }
+
+    .danger-button { background: #c03935; }
+    .danger-button:hover { background: #982d29; }
+
+    .small-button {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .message {
+        margin: 12px 0 18px;
+        color: #718096;
+        line-height: 1.9;
+        overflow-wrap: anywhere;
+    }
+
+    .error-message {
+        padding: 12px 14px;
+        border-radius: 8px;
+        color: #b42318;
+        background: #fff0ef;
+    }
+
+    .success-message {
+        padding: 12px 14px;
+        border-radius: 8px;
+        color: #14764e;
+        background: #eaf8f1;
+    }
+
+    .table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        text-align: right;
+    }
+
+    th, td {
+        padding: 13px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        text-align: right;
+        vertical-align: middle;
+        line-height: 1.8;
+        overflow-wrap: anywhere;
+    }
+
+    th {
+        background: #edf2f8;
+        color: #263b5a;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    td { font-size: 13px; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #f8faff; }
+
+    .role-badge {
+        display: inline-block;
+        padding: 4px 9px;
+        border-radius: 20px;
+        background: #edf2f8;
+        color: #34445c;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+
+    .role-superadmin { background: #eee8ff; color: #6741a5; }
+    .role-admin { background: #e4efff; color: #2457a7; }
+    .role-operator { background: #fff2d9; color: #93610d; }
+    .role-user { background: #e5f6ed; color: #16734b; }
+
+    /* Modal */
+
+    .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        padding: 20px;
+        background: rgb(15 27 45 / 60%);
+        align-items: center;
+        justify-content: center;
+        overflow-y: auto;
+    }
+
+    .modal.show { display: flex; }
+
+    .modal-box {
+        width: 100%;
+        max-width: 480px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 25px;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 15px 50px rgb(0 0 0 / 20%);
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .modal-header h2 { margin: 0; font-size: 19px; }
+
+    .close-button {
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 8px;
+        background: #edf2f8;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    .form-group { margin-bottom: 15px; }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 13px;
+        font-weight: bold;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+        font-size: 13px;
+        outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        border-color: #2457a7;
+        box-shadow: 0 0 0 3px rgb(36 87 167 / 10%);
+    }
+
+    .form-help {
+        display: block;
+        margin-top: 6px;
+        color: #718096;
+        font-size: 11px;
+        line-height: 1.7;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 22px;
+    }
+
+    .modal-actions button { flex: 1; }
+
+    button:focus-visible, a:focus-visible {
+        outline: 3px solid #83b5ff;
+        outline-offset: 3px;
+    }
+
+    @media (max-width: 1000px) {
+        .main-content { padding: 22px; }
+    }
+
+    @media (max-width: 700px) {
+        .sidebar {
+            position: relative;
+            width: 100%;
+            padding: 12px;
+        }
+
+        .sidebar-logo {
+            padding: 10px;
+            text-align: right;
+        }
+
+        .sidebar-nav {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        .nav-item { padding: 10px 12px; }
+
+        .main-content {
+            margin-right: 0;
+            padding: 16px;
+        }
+
+        .topbar h1 { font-size: 21px; }
+        .content-card { padding: 16px; }
+
+        .page-toolbar { align-items: stretch; }
+        .toolbar-actions { width: 100%; }
+        .toolbar-actions button { flex: 1; }
+        .row-actions { min-width: 190px; }
+
+        .modal-box { padding: 19px; }
+    }
+</style>
+
+<div class="admin-layout">
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">Havaleh</div>
+
+        <nav class="sidebar-nav">
+            <a href="/admin/" class="nav-item">داشبورد</a>
+
+            <a href="/admin/users" class="nav-item active">
+                کاربران
+            </a>
+
+            <a href="/admin/logs" class="nav-item" id="logsNav">
+                لاگ‌ها
+            </a>
+
+            <a href="#" class="nav-item" id="logoutButton">
+                خروج
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <h1>مدیریت کاربران</h1>
+            <p>مدیریت حساب‌ها، اطلاعات و سطح دسترسی کاربران سامانه</p>
+        </header>
+
+        <section class="content-card">
+
+            <div class="page-toolbar">
+                <h2>فهرست کاربران</h2>
+
+                <div class="toolbar-actions">
+                    <button
+                        type="button"
+                        class="action-button success-button"
+                        id="addUserButton"
+                        style="display:none"
+                    >
+                        + افزودن کاربر
+                    </button>
+
+                    <button
+                        type="button"
+                        class="action-button"
+                        id="refreshButton"
+                    >
+                        بارگذاری مجدد
+                    </button>
+                </div>
+            </div>
+
+            <p id="pageMessage" class="message" role="status">
+                در حال دریافت اطلاعات...
+            </p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>شناسه</th>
+                            <th>نام</th>
+                            <th>ایمیل</th>
+                            <th>تلفن</th>
+                            <th>نقش</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="usersTableBody"></tbody>
+                </table>
+            </div>
+
+        </section>
+    </main>
+</div>
+
+
+<!-- Add / Edit Modal -->
+
+<div class="modal" id="userModal">
+    <div class="modal-box">
+
+        <div class="modal-header">
+            <h2 id="modalTitle">افزودن کاربر</h2>
+
+            <button
+                type="button"
+                class="close-button"
+                id="closeModalButton"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="userForm">
+
+            <div class="form-group">
+                <label for="userName">نام و نام خانوادگی</label>
+                <input
+                    type="text"
+                    id="userName"
+                    required
+                    maxlength="150"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="userEmail">ایمیل</label>
+                <input
+                    type="email"
+                    id="userEmail"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="userPhone">شماره تلفن</label>
+                <input
+                    type="text"
+                    id="userPhone"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="userPassword">رمز عبور</label>
+                <input
+                    type="password"
+                    id="userPassword"
+                    autocomplete="new-password"
+                >
+                <small class="form-help" id="passwordHelp">
+                    رمز عبور باید حداقل ۸ کاراکتر و شامل حروف کوچک و بزرگ،
+                    عدد و کاراکتر ویژه باشد.
+                </small>
+            </div>
+
+            <div class="form-group" id="createRoleGroup" style="display:none">
+                <label for="createUserRole">نقش کاربر</label>
+
+                <select id="createUserRole">
+                    <option value="user">کاربر عادی</option>
+                    <option value="operator">اپراتور</option>
+                    <option value="admin">مدیر</option>
+                    <option value="superadmin">مدیر ارشد</option>
+                </select>
+            </div>
+
+            <div class="modal-actions">
+                <button
+                    type="submit"
+                    class="action-button success-button"
+                    id="saveUserButton"
+                >
+                    ذخیره
+                </button>
+
+                <button
+                    type="button"
+                    class="action-button"
+                    id="cancelModalButton"
+                >
+                    انصراف
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+
+<!-- Change Role Modal -->
+
+<div class="modal" id="roleModal">
+    <div class="modal-box">
+
+        <div class="modal-header">
+            <h2>تغییر نقش کاربر</h2>
+
+            <button
+                type="button"
+                class="close-button"
+                id="closeRoleModalButton"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="roleForm">
+
+            <p id="roleUserName" class="message"></p>
+
+            <div class="form-group">
+                <label for="newRole">نقش جدید</label>
+
+                <select id="newRole">
+                    <option value="user">کاربر عادی</option>
+                    <option value="operator">اپراتور</option>
+                    <option value="admin">مدیر</option>
+                    <option value="superadmin">مدیر ارشد</option>
+                </select>
+            </div>
+
+            <div class="modal-actions">
+                <button
+                    type="submit"
+                    class="action-button success-button"
+                    id="saveRoleButton"
+                >
+                    ثبت تغییر نقش
+                </button>
+
+                <button
+                    type="button"
+                    class="action-button"
+                    id="cancelRoleModalButton"
+                >
+                    انصراف
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+
+<script>
+"use strict";
+
+const accessToken = sessionStorage.getItem("access_token");
+const refreshToken = sessionStorage.getItem("refresh_token");
+
+let currentUser = null;
+let usersList = [];
+let editingUserId = null;
+let changingRoleUserId = null;
+
+const tbody = document.getElementById("usersTableBody");
+const refreshButton = document.getElementById("refreshButton");
+const addUserButton = document.getElementById("addUserButton");
+
+const userModal = document.getElementById("userModal");
+const roleModal = document.getElementById("roleModal");
+
+function clearSession() {
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+}
+
+function redirectToLogin() {
+    clearSession();
+    window.location.replace("/admin/login");
+}
+
+function showMessage(message, type = "") {
+    const element = document.getElementById("pageMessage");
+
+    element.textContent = message;
+
+    element.classList.remove(
+        "error-message",
+        "success-message"
+    );
+
+    if (type === "error") {
+        element.classList.add("error-message");
+    }
+
+    if (type === "success") {
+        element.classList.add("success-message");
+    }
+}
+
+async function readResponse(response) {
+    const text = await response.text();
+
+    if (!text) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        return { detail: text };
+    }
+}
+
+function normalizeList(data) {
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (data && typeof data === "object") {
+        for (const key of ["users", "items", "results", "data"]) {
+            if (Array.isArray(data[key])) {
+                return data[key];
+            }
+        }
+    }
+
+    return null;
+}
+
+async function apiRequest(url, options = {}) {
+    const headers = {
+        "Authorization": "Bearer " + accessToken,
+        ...(options.headers || {})
+    };
+
+    const response = await fetch(url, {
+        ...options,
+        headers
+    });
+
+    if (response.status === 401) {
+        redirectToLogin();
+        throw new Error("نشست شما منقضی شده است.");
+    }
+
+    const data = await readResponse(response);
+
+    if (!response.ok) {
+        throw new Error(
+            data.detail || data.message || "عملیات ناموفق بود."
+        );
+    }
+
+    return data;
+}
+
+function addCell(row, value) {
+    const cell = document.createElement("td");
+
+    cell.textContent =
+        value === null || value === undefined || value === ""
+            ? "-"
+            : String(value);
+
+    row.appendChild(cell);
+}
+
+function roleTitle(role) {
+    const roles = {
+        superadmin: "مدیر ارشد",
+        admin: "مدیر",
+        operator: "اپراتور",
+        user: "کاربر عادی"
+    };
+
+    return roles[role] || role || "-";
+}
+
+function createRoleBadge(role) {
+    const badge = document.createElement("span");
+
+    badge.className = "role-badge role-" + role;
+    badge.textContent = roleTitle(role);
+
+    return badge;
+}
+
+function createActionButton(title, className, callback) {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "action-button small-button " + className;
+    button.textContent = title;
+    button.addEventListener("click", callback);
+
+    return button;
+}
+
+function canManageUser(user) {
+    if (!currentUser) {
+        return false;
+    }
+
+    if (currentUser.role === "superadmin") {
+        return true;
+    }
+
+    if (currentUser.role === "admin") {
+        return (
+            user.role !== "admin" &&
+            user.role !== "superadmin"
+        );
+    }
+
+    return false;
+}
+
+function renderUsers() {
+    tbody.replaceChildren();
+
+    if (usersList.length === 0) {
+        showMessage("کاربری برای نمایش وجود ندارد.");
+        return;
+    }
+
+    for (const user of usersList) {
+        const row = document.createElement("tr");
+
+        addCell(row, user.id);
+        addCell(row, user.name);
+        addCell(row, user.email);
+        addCell(row, user.phone);
+
+        const roleCell = document.createElement("td");
+        roleCell.appendChild(createRoleBadge(user.role));
+        row.appendChild(roleCell);
+
+        const actionsCell = document.createElement("td");
+        const actions = document.createElement("div");
+
+        actions.className = "row-actions";
+
+        if (canManageUser(user)) {
+            actions.appendChild(
+                createActionButton(
+                    "ویرایش",
+                    "",
+                    () => openEditModal(user)
+                )
+            );
+
+            actions.appendChild(
+                createActionButton(
+                    "حذف",
+                    "danger-button",
+                    () => deleteUser(user)
+                )
+            );
+        }
+
+        if (
+            currentUser.role === "superadmin" &&
+            user.id !== currentUser.id
+        ) {
+            actions.appendChild(
+                createActionButton(
+                    "تغییر نقش",
+                    "warning-button",
+                    () => openRoleModal(user)
+                )
+            );
+        }
+
+        if (actions.children.length === 0) {
+            actions.textContent = "بدون عملیات";
+        }
+
+        actionsCell.appendChild(actions);
+        row.appendChild(actionsCell);
+
+        tbody.appendChild(row);
+    }
+
+    showMessage("تعداد کاربران: " + usersList.length);
+}
+
+async function loadUsers() {
+    if (!accessToken) {
+        redirectToLogin();
+        return;
+    }
+
+    refreshButton.disabled = true;
+    addUserButton.disabled = true;
+
+    tbody.replaceChildren();
+    showMessage("در حال دریافت اطلاعات کاربران...");
+
+    try {
+        const me = await apiRequest("/users/me");
+
+        currentUser = me;
+
+        if (
+            currentUser.role !== "admin" &&
+            currentUser.role !== "superadmin"
+        ) {
+            window.location.replace("/admin/");
+            return;
+        }
+
+        document.getElementById("logsNav").style.display =
+            currentUser.role === "superadmin" ? "" : "none";
+
+        addUserButton.style.display =
+            currentUser.role === "superadmin" ? "" : "none";
+
+        const data = await apiRequest("/users/");
+        const users = normalizeList(data);
+
+        if (!users) {
+            throw new Error(
+                "ساختار پاسخ API با فهرست کاربران سازگار نیست."
+            );
+        }
+
+        usersList = users;
+        renderUsers();
+
+    } catch (error) {
+        showMessage(
+            error.message || "خطا هنگام دریافت کاربران.",
+            "error"
+        );
+    } finally {
+        refreshButton.disabled = false;
+        addUserButton.disabled = false;
+    }
+}
+
+
+// =========================
+// Add User
+// =========================
+
+function openCreateModal() {
+    editingUserId = null;
+
+    document.getElementById("modalTitle").textContent =
+        "افزودن کاربر جدید";
+
+    document.getElementById("userForm").reset();
+
+    document.getElementById("userPassword").required = true;
+
+    document.getElementById("passwordHelp").textContent =
+        "رمز عبور باید حداقل ۸ کاراکتر و شامل حروف کوچک و بزرگ، عدد و کاراکتر ویژه باشد.";
+
+    document.getElementById("createRoleGroup").style.display = "block";
+
+    userModal.classList.add("show");
+}
+
+async function createUser(formData) {
+    const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        role: formData.role
+    };
+
+    await apiRequest("/users/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+
+    closeUserModal();
+    showMessage("کاربر جدید با موفقیت ایجاد شد.", "success");
+
+    await loadUsers();
+}
+
+
+// =========================
+// Edit User
+// =========================
+
+function openEditModal(user) {
+    editingUserId = user.id;
+
+    document.getElementById("modalTitle").textContent =
+        "ویرایش اطلاعات کاربر";
+
+    document.getElementById("userName").value = user.name || "";
+    document.getElementById("userEmail").value = user.email || "";
+    document.getElementById("userPhone").value = user.phone || "";
+    document.getElementById("userPassword").value = "";
+
+    document.getElementById("userPassword").required = false;
+
+    document.getElementById("passwordHelp").textContent =
+        "اگر نمی‌خواهی رمز عبور تغییر کند، این قسمت را خالی بگذار.";
+
+    document.getElementById("createRoleGroup").style.display = "none";
+
+    userModal.classList.add("show");
+}
+
+async function updateUser(formData) {
+    const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password || null
+    };
+
+    await apiRequest("/users/" + editingUserId, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+
+    closeUserModal();
+    showMessage("اطلاعات کاربر با موفقیت ویرایش شد.", "success");
+
+    await loadUsers();
+}
+
+function closeUserModal() {
+    userModal.classList.remove("show");
+    editingUserId = null;
+    document.getElementById("userForm").reset();
+}
+
+
+// =========================
+// Delete User
+// =========================
+
+async function deleteUser(user) {
+    const confirmed = confirm(
+        "آیا از حذف کاربر «" + user.name + "» مطمئن هستی؟\n\nاین عملیات قابل بازگشت نیست."
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        await apiRequest("/users/" + user.id, {
+            method: "DELETE"
+        });
+
+        showMessage("کاربر با موفقیت حذف شد.", "success");
+
+        await loadUsers();
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    }
+}
+
+
+// =========================
+// Change Role
+// =========================
+
+function openRoleModal(user) {
+    changingRoleUserId = user.id;
+
+    document.getElementById("roleUserName").textContent =
+        "تغییر نقش برای: " + user.name;
+
+    document.getElementById("newRole").value = user.role;
+
+    roleModal.classList.add("show");
+}
+
+function closeRoleModal() {
+    roleModal.classList.remove("show");
+    changingRoleUserId = null;
+}
+
+async function changeUserRole(role) {
+    await apiRequest("/users/" + changingRoleUserId + "/role", {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            role: role
+        })
+    });
+
+    closeRoleModal();
+    showMessage("نقش کاربر با موفقیت تغییر کرد.", "success");
+
+    await loadUsers();
+}
+
+
+// =========================
+// Form Events
+// =========================
+
+document.getElementById("userForm").addEventListener(
+    "submit",
+    async function(event) {
+        event.preventDefault();
+
+        const saveButton = document.getElementById("saveUserButton");
+
+        const formData = {
+            name: document.getElementById("userName").value.trim(),
+            email: document.getElementById("userEmail").value.trim(),
+            phone: document.getElementById("userPhone").value.trim(),
+            password: document.getElementById("userPassword").value,
+            role: document.getElementById("createUserRole").value
+        };
+
+        if (!formData.name || !formData.email || !formData.phone) {
+            alert("لطفاً تمام فیلدهای ضروری را تکمیل کن.");
+            return;
+        }
+
+        saveButton.disabled = true;
+
+        try {
+            if (editingUserId === null) {
+                await createUser(formData);
+            } else {
+                await updateUser(formData);
+            }
+
+        } catch (error) {
+            showMessage(error.message, "error");
+            alert(error.message);
+
+        } finally {
+            saveButton.disabled = false;
+        }
+    }
+);
+
+document.getElementById("roleForm").addEventListener(
+    "submit",
+    async function(event) {
+        event.preventDefault();
+
+        const button = document.getElementById("saveRoleButton");
+        button.disabled = true;
+
+        try {
+            const role = document.getElementById("newRole").value;
+            await changeUserRole(role);
+
+        } catch (error) {
+            alert(error.message);
+            showMessage(error.message, "error");
+
+        } finally {
+            button.disabled = false;
+        }
+    }
+);
+
+
+// =========================
+// Button Events
+// =========================
+
+addUserButton.addEventListener("click", openCreateModal);
+
+refreshButton.addEventListener("click", loadUsers);
+
+document.getElementById("closeModalButton").addEventListener(
+    "click",
+    closeUserModal
+);
+
+document.getElementById("cancelModalButton").addEventListener(
+    "click",
+    closeUserModal
+);
+
+document.getElementById("closeRoleModalButton").addEventListener(
+    "click",
+    closeRoleModal
+);
+
+document.getElementById("cancelRoleModalButton").addEventListener(
+    "click",
+    closeRoleModal
+);
+
+userModal.addEventListener("click", function(event) {
+    if (event.target === userModal) {
+        closeUserModal();
+    }
+});
+
+roleModal.addEventListener("click", function(event) {
+    if (event.target === roleModal) {
+        closeRoleModal();
+    }
+});
+
+document.getElementById("logoutButton").addEventListener(
+    "click",
+    async function(event) {
+        event.preventDefault();
+
+        if (refreshToken) {
+            try {
+                await fetch("/users/logout", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        refresh_token: refreshToken
+                    })
+                });
+            } catch (error) {
+                console.error("خطا هنگام خروج:", error);
+            }
+        }
+
+        redirectToLogin();
+    }
+);
+
+
+// Start
+loadUsers();
+
+</script>
+
+{% endblock %}
